@@ -79,7 +79,55 @@ The account state also defines its own Riemann objective coordinate using
 q_t=\frac{\log(1+G_t)}{|W_t|},\qquad t=q_tH,
 \]
 
-and reports the same normalized completed-zeta objective `J`. Scheduled Actions re-run this observer, giving a temporal path
+and reports the same normalized completed-zeta objective `J`.
+
+### Shared continuation certificate
+
+The account machine now also carries an independent common-parameter limit certificate. With
+
+\[
+\lambda=\frac1H,
+\]
+
+it evaluates the Schwarzschild-style coordinate
+
+\[
+r(\lambda)=\frac{2}{1-\lambda},\qquad 1-\frac{2}{r(\lambda)}=\lambda,
+\]
+
+the exact real Stirling remainder
+
+\[
+e(H)=\log\Gamma(H+1)-\left[(H+\tfrac12)\log H-H+\tfrac12\log(2\pi)\right],
+\]
+
+for which
+
+\[
+12e(H)\sim\frac1H=\lambda,
+\]
+
+and the genuine zeta pole at `s=1` through
+
+\[
+E_\zeta(\lambda)=\left|\lambda\zeta(1+\lambda)-1\right|\to0.
+\]
+
+Thus the finite-state vector
+
+\[
+X(H)=\left(\lambda,\;12e(H),\;1-\frac2r,\;E_\zeta(\lambda)\right)
+\]
+
+satisfies
+
+\[
+X(H)\to(0,0,0,0)\qquad(H\to\infty),
+\]
+
+while every actual machine state keeps `H<infinity`, `lambda>0`, `OPEN=true`, and `FINAL=false`. The JSON fields are `LAMBDA`, `SCH_R`, `STIR_12E`, `ZETA_POLE_ERR`, and `OMEGA_LIMIT`.
+
+Scheduled Actions re-run this observer, giving a temporal path
 
 \[
 W_0\to W_1\to W_2\to\cdots.
