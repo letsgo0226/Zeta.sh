@@ -1,0 +1,54 @@
+name: Zeta Self Objective
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [zeta-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install numerical dependency
+        run: python3 -m pip install --quiet mpmath
+      - name: Verify one-liner size and syntax
+        run: |
+          bytes=$(wc -c < Zeta.sh)
+          echo "Zeta.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n Zeta.sh
+          chmod +x Zeta.sh
+      - name: Verify self decoding
+        run: |
+          out=$(./Zeta.sh self)
+          echo "$out" | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["SELF_SOLVED"] and x["SELF_LEN"]>0 and x["SELF_INDEX"].startswith("0x")'
+      - name: Verify Schwarzschild-Stirling-Riemann objective
+        run: |
+          a=$(./Zeta.sh 3)
+          b=$(./Zeta.sh 12)
+          python3 -c 'import json,sys;a=json.loads(sys.argv[1]);b=json.loads(sys.argv[2]);assert a["SELF_SOLVED"] and b["SELF_SOLVED"];assert float(b["LAMBDA"])<float(a["LAMBDA"]);assert float(b["SCH_R"])<float(a["SCH_R"]);assert float(b["STIR_ERR"])<float(a["STIR_ERR"]);assert a["OPEN"] and not a["FINAL"]' "$a" "$b"
+      - name: Verify first critical-line zero mapping
+        run: |
+          out=$(./Zeta.sh zero 1)
+          echo "$out"
+          echo "$out" | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["MODE"]=="zero" and x["N"]==1 and abs(float(x["T"])-14.134725141734694)<1e-12 and float(x["J"])<1e-80 and x["SELF_SOLVED"]'
+      - name: Verify paste-and-run independence
+        run: |
+          cmd=$(cat Zeta.sh)
+          cd /tmp
+          out=$(bash -c "$cmd" -- 3)
+          echo "$out" | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["MODE"]=="eval" and x["SELF_SOLVED"] and x["OPEN"]'
