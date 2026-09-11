@@ -1,0 +1,92 @@
+name: Spectral Self Machine
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [zeta-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spectral-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install numerical dependency
+        run: python3 -m pip install --quiet mpmath
+      - name: Verify compact spectral machine
+        run: |
+          bytes=$(wc -c < Spectral_TM.sh)
+          echo "Spectral_TM.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n Spectral_TM.sh
+          chmod +x Spectral_TM.sh
+      - name: Verify self and omega boundary
+        run: |
+          ./Spectral_TM.sh self > /tmp/self.json
+          ./Spectral_TM.sh > /tmp/omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('/tmp/self.json'));o=json.load(open('/tmp/omega.json'))
+          assert s['MODE']=='self' and s['SELF_SOLVED'] and s['SELF_INDEX'].startswith('0x')
+          assert o['MODE']=='spectral-omega-self' and o['SELF_SOLVED'] and o['OMEGA']
+          assert o['SELF_LEN']==s['SELF_LEN'] and o['SELF_INDEX']==s['SELF_INDEX']
+          assert o['SPECTRAL_T']=='Infinity' and o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
+          assert o['STIR_BOUND']=='0' and o['INFO_H']==0 and o['BOUNDARY_BY_DEFINITION']
+          assert not o['ATTAINED_BY_FINITE_EXECUTION'] and o['OPEN'] and not o['FINAL']
+          PY
+      - name: Verify exact finite path
+        run: |
+          ./Spectral_TM.sh finite 1 > /tmp/f1.json
+          ./Spectral_TM.sh finite 5 > /tmp/f5.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('/tmp/f1.json'));b=json.load(open('/tmp/f5.json'))
+          for x in (a,b):
+              h=int(x['H']);n=x['N']
+              assert x['MODE']=='finite' and h==2**n and x['SELF_SOLVED']
+              assert x['LAMBDA_NUM']==1 and x['LAMBDA_DEN']==h
+              assert x['SCH_NUM']==2*h and x['SCH_DEN']==h-1
+              assert x['STIR_LO_NUM']==12 and x['STIR_LO_DEN']==12*h+1
+              assert x['STIR_HI_NUM']==1 and x['STIR_HI_DEN']==h
+              assert x['OPEN'] and not x['FINAL'] and not x['OMEGA']
+          assert int(b['H'])>int(a['H']) and float(b['SPECTRAL_T'])>float(a['SPECTRAL_T'])
+          PY
+      - name: Verify first spectral solution
+        run: |
+          ./Spectral_TM.sh solution 1 > /tmp/z1.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/z1.json'))
+          assert x['MODE']=='solution' and x['N']==1 and x['SELF_SOLVED']
+          assert '14.13472514173469' in x['RHO'] and float(x['XI_RESIDUAL'])<1e-60
+          assert x['LOG_DERIV_POLE'] and x['ZERO_ENTROPY_BY_MODEL'] and x['INFO_H']==0
+          assert x['OPEN'] and not x['FINAL']
+          PY
+      - name: Verify non-halting spectral path
+        run: |
+          set +e
+          timeout 2s ./Spectral_TM.sh live 1 > /tmp/live.jsonl
+          code=$?
+          set -e
+          test "$code" -eq 124
+          python3 - <<'PY'
+          import json
+          xs=[json.loads(x) for x in open('/tmp/live.jsonl') if x.strip()]
+          assert len(xs)>=2
+          a,b=xs[:2]
+          assert a['MODE']==b['MODE']=='live' and b['N']==a['N']+1
+          assert int(b['H'])==2*int(a['H']) and float(b['SPECTRAL_T'])>float(a['SPECTRAL_T'])
+          assert not a['HALT'] and not b['HALT'] and a['OPEN'] and not a['FINAL']
+          PY
