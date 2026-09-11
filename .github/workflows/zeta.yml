@@ -74,15 +74,19 @@ jobs:
           bash -n Public_Universe_TM.sh
           chmod +x Public_Universe_TM.sh
           ./Public_Universe_TM.sh self | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["SELF_SOLVED"] and x["SELF_INDEX"].startswith("0x")'
-          ./Public_Universe_TM.sh 3 > /tmp/account.json
+          ./Public_Universe_TM.sh 3 > /tmp/a.json
+          ./Public_Universe_TM.sh 12 > /tmp/b.json
           python3 - <<'PY'
           import json
-          x=json.load(open('/tmp/account.json'))
-          assert x['MODE']=='account' and x['ACCOUNT']=='letsgo0226'
-          assert x['PUBLIC_REPOS']>0 and x['SELF_SOLVED'] and x['WORLD_REV'] and x['META_SELF']
-          assert x['WORLD_INDEX'].startswith('0x') and len(x['TRUTH_PATH'])==x['PUBLIC_REPOS']
-          assert abs(float(x['LAMBDA'])-1/3)<1e-15
-          assert x['OPEN'] and not x['FINAL']
+          a=json.load(open('/tmp/a.json'));b=json.load(open('/tmp/b.json'))
+          assert a['MODE']==b['MODE']=='account' and a['ACCOUNT']==b['ACCOUNT']=='letsgo0226'
+          assert a['PUBLIC_REPOS']>0 and a['SELF_SOLVED'] and a['WORLD_REV'] and a['META_SELF']
+          assert a['WORLD_INDEX'].startswith('0x') and len(a['TRUTH_PATH'])==a['PUBLIC_REPOS']
+          la,lb=float(a['LAMBDA']),float(b['LAMBDA']);ra,rb=float(a['SCH_R']),float(b['SCH_R'])
+          assert lb<la and 2<rb<ra
+          assert abs((1-2/ra)-la)<1e-15 and abs((1-2/rb)-lb)<1e-15
+          assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
+          assert a['OMEGA_LIMIT'] and b['OMEGA_LIMIT'] and a['OPEN'] and not a['FINAL']
           PY
       - name: Verify paste-and-run independence
         run: |
