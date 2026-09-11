@@ -40,7 +40,7 @@ Requires Python 3 and `mpmath`:
 
 ```bash
 python3 -m pip install mpmath
-chmod +x Zeta.sh Public_Universe_TM.sh
+chmod +x Zeta.sh Public_Universe_TM.sh OMEGA_Limit_TM.sh
 ./Zeta.sh 3
 ./Zeta.sh self
 ./Zeta.sh zero 1
@@ -48,6 +48,11 @@ chmod +x Zeta.sh Public_Universe_TM.sh
 ./Zeta.sh live 4
 ./Public_Universe_TM.sh 3
 ./Public_Universe_TM.sh self
+./OMEGA_Limit_TM.sh 1
+./OMEGA_Limit_TM.sh 8
+./OMEGA_Limit_TM.sh live 1
+./OMEGA_Limit_TM.sh omega
+./OMEGA_Limit_TM.sh self
 ```
 
 - `./Zeta.sh H` evaluates the self-encoding objective at a finite scale `H>1`.
@@ -83,7 +88,7 @@ and reports the same normalized completed-zeta objective `J`.
 
 ### Shared continuation certificate
 
-The account machine now also carries an independent common-parameter limit certificate. With
+The account machine also carries an independent common-parameter limit certificate. With
 
 \[
 \lambda=\frac1H,
@@ -127,15 +132,49 @@ X(H)\to(0,0,0,0)\qquad(H\to\infty),
 
 while every actual machine state keeps `H<infinity`, `lambda>0`, `OPEN=true`, and `FINAL=false`. The JSON fields are `LAMBDA`, `SCH_R`, `STIR_12E`, `ZETA_POLE_ERR`, and `OMEGA_LIMIT`.
 
-Scheduled Actions re-run this observer, giving a temporal path
+## Exact omega-limit recursive machine
+
+`OMEGA_Limit_TM.sh` makes the finite recursion and its ideal compactified boundary explicit. For integer `n>=1`, it generates
+
+\[
+H_n=2^n,\qquad \lambda_n=2^{-n},\qquad H_n\lambda_n=1.
+\]
+
+The finite JSON records preserve the reciprocal identity exactly with integer fields `LAMBDA_NUM=1` and `LAMBDA_DEN=H`, and the Schwarzschild-style coordinate exactly as the rational pair
+
+\[
+r_n=\frac{2H_n}{H_n-1},
+\]
+
+reported as `SCH_NUM=2H` and `SCH_DEN=H-1`. `STIR_12E` and `ZETA_POLE_ERR` are numerical evaluations of the corresponding analytic quantities and converge toward zero as the finite index grows.
+
+`./OMEGA_Limit_TM.sh live [n0]` executes the successor rule
+
+\[
+n\mapsto n+1,\qquad H\mapsto2H,\qquad\lambda\mapsto\lambda/2
+\]
+
+without a built-in halting state. Every emitted live state is finite and has `OMEGA=false`, `HALT=false`, `OPEN=true`, and `FINAL=false`.
+
+`./OMEGA_Limit_TM.sh omega` does something deliberately different: it does **not** claim that a Turing process completed infinitely many steps. It returns the exact symbolic boundary extension
+
+\[
+\Omega=(H=\infty,\lambda=0,r=2,S=0,E_\zeta=0)
+\]
+
+with `BOUNDARY_BY_DEFINITION=true` and `ATTAINED_BY_FINITE_EXECUTION=false`. In this extended state space, the equalities at the boundary are definitions/continuous or analytic extensions, while the executable recursion only approaches them through finite states.
+
+The program also quines its own canonical core and verifies the same reversible self-index relation `D(I(R))=R`. This is a formal computational limit model, not a claim that a physical system literally performs an infinite computation.
+
+Scheduled Actions re-run the observers and verification suite, giving a temporal path
 
 \[
 W_0\to W_1\to W_2\to\cdots.
 \]
 
-This mode observes **all current public repositories and their canonical metadata**, not every historical commit or every source blob. Private repositories are excluded. The mapping of repositories to truth-tree positions and Riemann coordinates is a defined computational indexing structure; it is not a claim that GitHub repositories or physical universes are naturally indexed by zeta zeros.
+The public-account mode observes **all current public repositories and their canonical metadata**, not every historical commit or every source blob. Private repositories are excluded. The mapping of repositories to truth-tree positions and Riemann coordinates is a defined computational indexing structure; it is not a claim that GitHub repositories or physical universes are naturally indexed by zeta zeros.
 
-The live mode is a non-halting computational process, not a completed infinite computation: every finite runtime has produced only finitely many states, while the transition rule always defines a successor.
+The live modes are non-halting computational processes, not completed infinite computations: every finite runtime has produced only finitely many states, while the transition rule always defines a successor.
 
 `zero N` is a mapping of a numerically computed critical-line zero into this machine's self scale. It is **not** a proof of the Riemann Hypothesis, nor does the Schwarzschild/Stirling construction imply that arbitrary self-codes are zeta zeros.
 
