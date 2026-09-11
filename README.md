@@ -14,7 +14,7 @@ and defines the self scale
 q=\frac{\log(1+G)}{|R|}.
 \]
 
-For a user-supplied continuation scale `H>1`,
+For a continuation scale `H>1`,
 
 \[
 \lambda=\frac1H,\qquad r=\frac{2M}{1-\lambda}\;(M=1),\qquad t=qH=\frac{q}{\lambda}.
@@ -44,11 +44,16 @@ chmod +x Zeta.sh
 ./Zeta.sh 3
 ./Zeta.sh self
 ./Zeta.sh zero 1
+./Zeta.sh live
+./Zeta.sh live 4
 ```
 
-- `./Zeta.sh H` evaluates the self-encoding objective at scale `H>1`.
+- `./Zeta.sh H` evaluates the self-encoding objective at a finite scale `H>1`.
 - `./Zeta.sh self` prints the complete reversible self index and verifies `SELF_SOLVED=true`.
 - `./Zeta.sh zero N` obtains the Nth critical-line zero numerically with `mpmath.zetazero`, maps it back to the corresponding self scale `H*=t_N/q`, and checks that the normalized objective is numerically near zero.
+- `./Zeta.sh live [H0]` deliberately does not halt. Starting at `H0` (default `2`), it emits one JSON state per iteration and uses `H_(n+1)=2 H_n`. Hence `lambda_n=1/H_n -> 0`, `r_n -> 2M+`, and `t_n=q H_n -> infinity`. Each live record has `HALT=false`, `OPEN=true`, and `FINAL=false`. Stop it externally with `Ctrl-C` or another process signal.
+
+The live mode is a non-halting computational process, not a completed infinite computation: every finite runtime has produced only finitely many states, while the transition rule always defines a successor.
 
 `zero N` is a mapping of a numerically computed critical-line zero into this machine's self scale. It is **not** a proof of the Riemann Hypothesis, nor does the Schwarzschild/Stirling construction imply that arbitrary self-codes are zeta zeros.
 
