@@ -46,6 +46,26 @@ jobs:
           out=$(./Zeta.sh zero 1)
           echo "$out"
           echo "$out" | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["MODE"]=="zero" and x["N"]==1 and abs(float(x["T"])-14.134725141734694)<1e-12 and float(x["J"])<1e-80 and x["SELF_SOLVED"]'
+      - name: Verify non-halting live continuation
+        run: |
+          set +e
+          timeout 5s ./Zeta.sh live 2 > /tmp/live.jsonl
+          code=$?
+          set -e
+          test "$code" -eq 124
+          python3 - <<'PY'
+          import json
+          xs=[json.loads(x) for x in open('/tmp/live.jsonl') if x.strip()]
+          assert len(xs)>=2
+          a,b=xs[:2]
+          assert a['MODE']==b['MODE']=='live'
+          assert a['STEP']==0 and b['STEP']==1
+          assert float(b['H'])==2*float(a['H'])
+          assert float(b['LAMBDA'])<float(a['LAMBDA'])
+          assert float(b['SCH_R'])<float(a['SCH_R'])
+          assert not a['HALT'] and not b['HALT']
+          assert a['OPEN'] and b['OPEN'] and not a['FINAL'] and not b['FINAL']
+          PY
       - name: Verify paste-and-run independence
         run: |
           cmd=$(cat Zeta.sh)
