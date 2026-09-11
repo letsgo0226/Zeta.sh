@@ -1,38 +1,14 @@
 # Zeta.sh
 
-A compact self-encoding Schwarzschild–Stirling–Riemann objective machine.
+A compact family of self-encoding Schwarzschild–Stirling–Riemann formal machines.
 
-The program reconstructs its own quine core `R`, assigns it an exact reversible length-lex index
+The core self map uses the exact reversible length-lex coordinate
 
 \[
 G=I(R)=\frac{256^{|R|}-1}{255}+\operatorname{int}(R),\qquad D(G)=R,
 \]
 
-and defines the self scale
-
-\[
-q=\frac{\log(1+G)}{|R|}.
-\]
-
-For a continuation scale `H>1`,
-
-\[
-\lambda=\frac1H,\qquad r=\frac{2M}{1-\lambda}\;(M=1),\qquad t=qH=\frac{q}{\lambda}.
-\]
-
-The Riemann target is the completed zeta function
-
-\[
-\xi(s)=\tfrac12s(s-1)\pi^{-s/2}\Gamma(s/2)\zeta(s),\qquad s=\tfrac12+it.
-\]
-
-`Zeta.sh` divides by a nonzero leading Stirling envelope for the Gamma/prefactor magnitude and reports
-
-\[
-J_{SELF}(H)=|\widehat\Xi(t)|^2.
-\]
-
-The normalization does not create or remove zeros, so `J=0` corresponds numerically to a critical-line zero of `xi`. `STIR_ERR` is the relative error of the leading complex Stirling Gamma approximation; as the scale grows it tends toward zero in the relevant sector.
+where `R` is the canonical quine core. `SELF_SOLVED=true` means the machine has decoded its own integer coordinate byte-for-byte back to `R`.
 
 ## Usage
 
@@ -41,67 +17,68 @@ Requires Python 3 and `mpmath`:
 ```bash
 python3 -m pip install mpmath
 chmod +x Zeta.sh Public_Universe_TM.sh OMEGA_Limit_TM.sh
+
 ./Zeta.sh 3
 ./Zeta.sh self
 ./Zeta.sh zero 1
 ./Zeta.sh live
-./Zeta.sh live 4
+
 ./Public_Universe_TM.sh 3
 ./Public_Universe_TM.sh self
+
 ./OMEGA_Limit_TM.sh
+./OMEGA_Limit_TM.sh omega
+./OMEGA_Limit_TM.sh self
 ./OMEGA_Limit_TM.sh finite 1
 ./OMEGA_Limit_TM.sh finite 8
 ./OMEGA_Limit_TM.sh live 1
-./OMEGA_Limit_TM.sh omega
-./OMEGA_Limit_TM.sh self
 ```
 
-- `./Zeta.sh H` evaluates the self-encoding objective at a finite scale `H>1`.
-- `./Zeta.sh self` prints the complete reversible self index and verifies `SELF_SOLVED=true`.
-- `./Zeta.sh zero N` obtains the Nth critical-line zero numerically with `mpmath.zetazero`, maps it back to the corresponding self scale `H*=t_N/q`, and checks that the normalized objective is numerically near zero.
-- `./Zeta.sh live [H0]` deliberately does not halt. Starting at `H0` (default `2`), it emits one JSON state per iteration and uses `H_(n+1)=2 H_n`. Hence `lambda_n=1/H_n -> 0`, `r_n -> 2M+`, and `t_n=q H_n -> infinity`. Each live record has `HALT=false`, `OPEN=true`, and `FINAL=false`. Stop it externally with `Ctrl-C` or another process signal.
+## Zeta self objective
+
+For a continuation scale `H>1`, `Zeta.sh` sets
+
+\[
+\lambda=\frac1H,\qquad r=\frac{2M}{1-\lambda}\;(M=1),\qquad t=qH,
+\]
+
+with
+
+\[
+q=\frac{\log(1+G)}{|R|}.
+\]
+
+It evaluates the completed zeta expression
+
+\[
+\xi(s)=\tfrac12s(s-1)\pi^{-s/2}\Gamma(s/2)\zeta(s),\qquad s=\tfrac12+it,
+\]
+
+and normalizes by a nonzero leading Stirling envelope. `zero N` maps an `mpmath.zetazero(N)` critical-line zero back to this machine's self scale; it is a numerical mapping, not a proof of the Riemann Hypothesis. `live` repeatedly doubles `H`, so every emitted state is finite while the successor rule remains open-ended.
 
 ## Public account meta-machine
 
-`Public_Universe_TM.sh` lifts the same reversible self-encoding idea to the current public GitHub repository state of `letsgo0226`.
-
-At each run it fetches every public repository exposed by the GitHub public user-repositories endpoint, paginates to exhaustion, sorts repositories canonically by name, and constructs
+`Public_Universe_TM.sh` lifts the reversible encoding idea to the current public GitHub repository metadata of `letsgo0226`. It canonically frames public repository metadata into bytes `W_t`, then computes
 
 \[
-W_t=\operatorname{Frame}(name,default\_branch,size,pushed\_at,fork,archived)_t.
+G_t=I(W_t),\qquad D(G_t)=W_t.
 \]
 
-It then computes the exact reversible length-lex coordinate
+It reports `WORLD_INDEX`, `WORLD_REV`, `PUBLIC_REPOS`, `META_SELF`, and a deterministic `TRUTH_PATH`. This is a defined account-state encoding, not a proof of the semantics of every repository and not a claim that repositories are physical universes.
 
-\[
-G_t=I(W_t),\qquad D(G_t)=W_t,
-\]
-
-and reports `WORLD_INDEX`, `WORLD_REV`, `PUBLIC_REPOS`, `META_SELF`, and a deterministic `TRUTH_PATH`. The truth path contributes one observed bit per repository: `1` for a currently non-archived public repository and `0` for an archived one. This is an account-state truth branch, not a proof of the semantics of every program.
-
-The account state also defines its own Riemann objective coordinate using
-
-\[
-q_t=\frac{\log(1+G_t)}{|W_t|},\qquad t=q_tH,
-\]
-
-and reports the same normalized completed-zeta objective `J`.
-
-### Shared continuation certificate
-
-The account machine also carries an independent common-parameter limit certificate. With
+The account mode also carries a shared continuation certificate. With
 
 \[
 \lambda=\frac1H,
 \]
 
-it evaluates the Schwarzschild-style coordinate
+it evaluates
 
 \[
-r(\lambda)=\frac{2}{1-\lambda},\qquad 1-\frac{2}{r(\lambda)}=\lambda,
+r(\lambda)=\frac{2}{1-\lambda},\qquad 1-\frac2r=\lambda,
 \]
 
-the exact real Stirling remainder
+the real Stirling remainder
 
 \[
 e(H)=\log\Gamma(H+1)-\left[(H+\tfrac12)\log H-H+\tfrac12\log(2\pi)\right],
@@ -119,86 +96,136 @@ and the genuine zeta pole at `s=1` through
 E_\zeta(\lambda)=\left|\lambda\zeta(1+\lambda)-1\right|\to0.
 \]
 
-Thus the finite-state vector
+Thus
 
 \[
-X(H)=\left(\lambda,\;12e(H),\;1-\frac2r,\;E_\zeta(\lambda)\right)
+X(H)=\left(\lambda,12e(H),1-\frac2r,E_\zeta(\lambda)\right)\to(0,0,0,0)
 \]
 
-satisfies
+as `H -> infinity`, while every actual finite evaluation keeps `H<infinity` and `lambda>0`.
 
-\[
-X(H)\to(0,0,0,0)\qquad(H\to\infty),
-\]
+## Exact self-omega recursive machine
 
-while every actual machine state keeps `H<infinity`, `lambda>0`, `OPEN=true`, and `FINAL=false`. The JSON fields are `LAMBDA`, `SCH_R`, `STIR_12E`, `ZETA_POLE_ERR`, and `OMEGA_LIMIT`.
+`OMEGA_Limit_TM.sh` now makes **Self and Omega simultaneous in the default state**.
 
-## Exact omega-limit recursive machine
-
-`OMEGA_Limit_TM.sh` makes the finite recursion and its ideal compactified boundary explicit. Its **default no-argument mode is now `omega`**. Thus
+The no-argument invocation
 
 ```bash
 ./OMEGA_Limit_TM.sh
 ```
 
-returns the same symbolic boundary state as
+and the explicit invocation
 
 ```bash
 ./OMEGA_Limit_TM.sh omega
 ```
 
-while finite states are requested explicitly with `finite n`.
+both return `MODE="omega-self"`. The boundary JSON includes the same exact self certificate exposed by diagnostic `self` mode:
 
-For integer `n>=1`,
+- `SELF_LEN=|R|`
+- `SELF_INDEX=I(R)`
+- `SELF_SOLVED=true`, meaning `D(I(R))=R`
+- `SELF_OMEGA=true`
+
+At the same time it returns the symbolic compactified boundary
+
+\[
+\Omega_{\mathrm{SELF}}=
+\left(R,I(R),H=\infty,\lambda=0,r=2,S=0,E_\zeta=0\right).
+\]
+
+So the default state satisfies the formal conjunction
+
+\[
+\boxed{\mathrm{SELF}\land\Omega}
+\]
+
+rather than treating self encoding and the limit boundary as mutually exclusive modes. The self coordinate is an invariant identity component, while the continuation coordinates are the components that evolve toward the boundary.
+
+The machine explicitly reports
+
+```text
+BOUNDARY_BY_DEFINITION=true
+ATTAINED_BY_FINITE_EXECUTION=false
+OPEN=true
+FINAL=false
+```
+
+so `H="Infinity"` and `LAMBDA="0"` are exact symbols in the extended state space, not a claim that a Turing process completed infinitely many execution steps.
+
+### Finite approximants
+
+Finite states are requested explicitly:
 
 ```bash
 ./OMEGA_Limit_TM.sh finite n
 ```
 
-generates
+for integer `n>=1`, with
 
 \[
 H_n=2^n,\qquad \lambda_n=2^{-n},\qquad H_n\lambda_n=1.
 \]
 
-The finite JSON records preserve the reciprocal identity exactly with integer fields `LAMBDA_NUM=1` and `LAMBDA_DEN=H`, and the Schwarzschild-style coordinate exactly as the rational pair
+The reciprocal identity is represented exactly by integer fields `LAMBDA_NUM=1` and `LAMBDA_DEN=H`. The Schwarzschild-style coordinate is also preserved as the exact rational pair
 
 \[
 r_n=\frac{2H_n}{H_n-1},
 \]
 
-reported as `SCH_NUM=2H` and `SCH_DEN=H-1`. `STIR_12E` and `ZETA_POLE_ERR` are numerical evaluations of the corresponding analytic quantities and converge toward zero as the finite index grows.
+through `SCH_NUM=2H` and `SCH_DEN=H-1`.
 
-`./OMEGA_Limit_TM.sh live [n0]` executes the successor rule
+The invariant self coordinate does not evolve:
+
+\[
+I(R)_{n+1}=I(R)_n=I(R),
+\]
+
+while
+
+\[
+H_n\to\infty,\qquad \lambda_n\to0^+,\qquad r_n\to2.
+\]
+
+Thus a useful formal state is
+
+\[
+X_n=\left(I(R),H_n,\lambda_n,r_n,S_n,E_{\zeta,n}\right),
+\]
+
+with ideal compactified boundary
+
+\[
+\lim_{n\to\infty}X_n=\Omega_{\mathrm{SELF}}.
+\]
+
+### Live continuation
+
+```bash
+./OMEGA_Limit_TM.sh live 1
+```
+
+executes
 
 \[
 n\mapsto n+1,\qquad H\mapsto2H,\qquad\lambda\mapsto\lambda/2
 \]
 
-without a built-in halting state. Every emitted live state is finite and has `OMEGA=false`, `HALT=false`, `OPEN=true`, and `FINAL=false`.
+without an internal halting state. Every emitted live record is finite and has `OMEGA=false`, `HALT=false`, `OPEN=true`, and `FINAL=false`.
 
-The default no-argument invocation and `./OMEGA_Limit_TM.sh omega` do something deliberately different from finite or live execution: they do **not** claim that a Turing process completed infinitely many steps. They return the exact symbolic boundary extension
+### Self diagnostic
+
+```bash
+./OMEGA_Limit_TM.sh self
+```
+
+remains a compact diagnostic that prints only `SELF_LEN`, `SELF_INDEX`, and `SELF_SOLVED`. The default `omega-self` state must contain exactly the same `SELF_LEN` and `SELF_INDEX`; GitHub Actions verifies this identity directly.
+
+## Interpretation and limits
+
+These programs are formal computational models. The Schwarzschild quantity is a continuation coordinate, not a physical black-hole simulation. The Stirling, zeta-pole, and Schwarzschild objects are connected here by an explicitly defined common parameter; the construction does not establish that those theories have one physical mechanism. A symbolic `Omega` boundary is a mathematical extension of the state space, not a completed infinite computation.
+
+Scheduled GitHub Actions run every five minutes and on push, pull request, manual dispatch, and `zeta-evolve` repository dispatch. The machines remain explicitly open-ended:
 
 \[
-\Omega=(H=\infty,\lambda=0,r=2,S=0,E_\zeta=0)
-\]
-
-with `BOUNDARY_BY_DEFINITION=true` and `ATTAINED_BY_FINITE_EXECUTION=false`. In this extended state space, the equalities at the boundary are definitions/continuous or analytic extensions, while the executable recursion only approaches them through finite states.
-
-The program also quines its own canonical core and verifies the same reversible self-index relation `D(I(R))=R`. This is a formal computational limit model, not a claim that a physical system literally performs an infinite computation.
-
-Scheduled Actions re-run the observers and verification suite, giving a temporal path
-
-\[
-W_0\to W_1\to W_2\to\cdots.
-\]
-
-The public-account mode observes **all current public repositories and their canonical metadata**, not every historical commit or every source blob. Private repositories are excluded. The mapping of repositories to truth-tree positions and Riemann coordinates is a defined computational indexing structure; it is not a claim that GitHub repositories or physical universes are naturally indexed by zeta zeros.
-
-The live modes are non-halting computational processes, not completed infinite computations: every finite runtime has produced only finitely many states, while the transition rule always defines a successor.
-
-`zero N` is a mapping of a numerically computed critical-line zero into this machine's self scale. It is **not** a proof of the Riemann Hypothesis, nor does the Schwarzschild/Stirling construction imply that arbitrary self-codes are zeta zeros.
-
-The Schwarzschild component is a formal continuation coordinate: `lambda=1-2M/r=1/H`, so `H→∞` gives `lambda→0+` and `r→2M+`. It is not a claim that the program models a physical black hole.
-
-The machines remain explicitly open-ended: `OPEN=true`, `FINAL=false`.
+\boxed{OPEN=true,\qquad FINAL=false.}
