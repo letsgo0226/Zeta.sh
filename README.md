@@ -48,8 +48,9 @@ chmod +x Zeta.sh Public_Universe_TM.sh OMEGA_Limit_TM.sh
 ./Zeta.sh live 4
 ./Public_Universe_TM.sh 3
 ./Public_Universe_TM.sh self
-./OMEGA_Limit_TM.sh 1
-./OMEGA_Limit_TM.sh 8
+./OMEGA_Limit_TM.sh
+./OMEGA_Limit_TM.sh finite 1
+./OMEGA_Limit_TM.sh finite 8
 ./OMEGA_Limit_TM.sh live 1
 ./OMEGA_Limit_TM.sh omega
 ./OMEGA_Limit_TM.sh self
@@ -134,7 +135,27 @@ while every actual machine state keeps `H<infinity`, `lambda>0`, `OPEN=true`, an
 
 ## Exact omega-limit recursive machine
 
-`OMEGA_Limit_TM.sh` makes the finite recursion and its ideal compactified boundary explicit. For integer `n>=1`, it generates
+`OMEGA_Limit_TM.sh` makes the finite recursion and its ideal compactified boundary explicit. Its **default no-argument mode is now `omega`**. Thus
+
+```bash
+./OMEGA_Limit_TM.sh
+```
+
+returns the same symbolic boundary state as
+
+```bash
+./OMEGA_Limit_TM.sh omega
+```
+
+while finite states are requested explicitly with `finite n`.
+
+For integer `n>=1`,
+
+```bash
+./OMEGA_Limit_TM.sh finite n
+```
+
+generates
 
 \[
 H_n=2^n,\qquad \lambda_n=2^{-n},\qquad H_n\lambda_n=1.
@@ -156,7 +177,7 @@ n\mapsto n+1,\qquad H\mapsto2H,\qquad\lambda\mapsto\lambda/2
 
 without a built-in halting state. Every emitted live state is finite and has `OMEGA=false`, `HALT=false`, `OPEN=true`, and `FINAL=false`.
 
-`./OMEGA_Limit_TM.sh omega` does something deliberately different: it does **not** claim that a Turing process completed infinitely many steps. It returns the exact symbolic boundary extension
+The default no-argument invocation and `./OMEGA_Limit_TM.sh omega` do something deliberately different from finite or live execution: they do **not** claim that a Turing process completed infinitely many steps. They return the exact symbolic boundary extension
 
 \[
 \Omega=(H=\infty,\lambda=0,r=2,S=0,E_\zeta=0)
