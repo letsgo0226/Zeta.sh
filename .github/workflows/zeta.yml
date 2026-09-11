@@ -88,21 +88,24 @@ jobs:
           assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
           assert a['OMEGA_LIMIT'] and b['OMEGA_LIMIT'] and a['OPEN'] and not a['FINAL']
           PY
-      - name: Verify exact omega-limit recursive machine
+      - name: Verify exact self-omega recursive machine
         run: |
           bytes=$(wc -c < OMEGA_Limit_TM.sh)
           echo "OMEGA_Limit_TM.sh bytes=$bytes"
           test "$bytes" -lt 2048
           bash -n OMEGA_Limit_TM.sh
           chmod +x OMEGA_Limit_TM.sh
-          ./OMEGA_Limit_TM.sh self | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["SELF_SOLVED"] and x["SELF_INDEX"].startswith("0x")'
+          ./OMEGA_Limit_TM.sh self > /tmp/omega-self-diagnostic.json
           ./OMEGA_Limit_TM.sh > /tmp/omega-default.json
           ./OMEGA_Limit_TM.sh omega > /tmp/omega-explicit.json
           ./OMEGA_Limit_TM.sh finite 1 > /tmp/o1.json
           ./OMEGA_Limit_TM.sh finite 4 > /tmp/o4.json
           python3 - <<'PY'
           import json
-          a=json.load(open('/tmp/o1.json'));b=json.load(open('/tmp/o4.json'));o=json.load(open('/tmp/omega-default.json'));oe=json.load(open('/tmp/omega-explicit.json'))
+          s=json.load(open('/tmp/omega-self-diagnostic.json'))
+          a=json.load(open('/tmp/o1.json'));b=json.load(open('/tmp/o4.json'))
+          o=json.load(open('/tmp/omega-default.json'));oe=json.load(open('/tmp/omega-explicit.json'))
+          assert s['SELF_SOLVED'] and s['SELF_LEN']>0 and s['SELF_INDEX'].startswith('0x')
           for x in (a,b):
               n=x['N'];h=int(x['H'])
               assert x['MODE']=='finite' and h==2**n
@@ -111,8 +114,10 @@ jobs:
               assert x['SELF_SOLVED'] and not x['OMEGA'] and x['OPEN'] and not x['FINAL']
           assert int(b['H'])>int(a['H']) and float(b['LAMBDA'])<float(a['LAMBDA'])
           assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
-          assert o==oe and o['MODE']=='omega' and o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
-          assert o['STIR_12E']=='0' and o['ZETA_POLE_ERR']=='0' and o['OMEGA'] and o['BOUNDARY_BY_DEFINITION']
+          assert o==oe and o['MODE']=='omega-self' and o['SELF_OMEGA'] and o['SELF_SOLVED'] and o['OMEGA']
+          assert o['SELF_LEN']==s['SELF_LEN'] and o['SELF_INDEX']==s['SELF_INDEX']
+          assert o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
+          assert o['STIR_12E']=='0' and o['ZETA_POLE_ERR']=='0' and o['BOUNDARY_BY_DEFINITION']
           assert not o['ATTAINED_BY_FINITE_EXECUTION'] and o['OPEN'] and not o['FINAL']
           PY
           set +e
