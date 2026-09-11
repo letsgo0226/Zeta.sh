@@ -96,12 +96,13 @@ jobs:
           bash -n OMEGA_Limit_TM.sh
           chmod +x OMEGA_Limit_TM.sh
           ./OMEGA_Limit_TM.sh self | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["SELF_SOLVED"] and x["SELF_INDEX"].startswith("0x")'
-          ./OMEGA_Limit_TM.sh 1 > /tmp/o1.json
-          ./OMEGA_Limit_TM.sh 4 > /tmp/o4.json
-          ./OMEGA_Limit_TM.sh omega > /tmp/omega.json
+          ./OMEGA_Limit_TM.sh > /tmp/omega-default.json
+          ./OMEGA_Limit_TM.sh omega > /tmp/omega-explicit.json
+          ./OMEGA_Limit_TM.sh finite 1 > /tmp/o1.json
+          ./OMEGA_Limit_TM.sh finite 4 > /tmp/o4.json
           python3 - <<'PY'
           import json
-          a=json.load(open('/tmp/o1.json'));b=json.load(open('/tmp/o4.json'));o=json.load(open('/tmp/omega.json'))
+          a=json.load(open('/tmp/o1.json'));b=json.load(open('/tmp/o4.json'));o=json.load(open('/tmp/omega-default.json'));oe=json.load(open('/tmp/omega-explicit.json'))
           for x in (a,b):
               n=x['N'];h=int(x['H'])
               assert x['MODE']=='finite' and h==2**n
@@ -110,7 +111,7 @@ jobs:
               assert x['SELF_SOLVED'] and not x['OMEGA'] and x['OPEN'] and not x['FINAL']
           assert int(b['H'])>int(a['H']) and float(b['LAMBDA'])<float(a['LAMBDA'])
           assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
-          assert o['MODE']=='omega' and o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
+          assert o==oe and o['MODE']=='omega' and o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
           assert o['STIR_12E']=='0' and o['ZETA_POLE_ERR']=='0' and o['OMEGA'] and o['BOUNDARY_BY_DEFINITION']
           assert not o['ATTAINED_BY_FINITE_EXECUTION'] and o['OPEN'] and not o['FINAL']
           PY
