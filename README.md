@@ -40,12 +40,14 @@ Requires Python 3 and `mpmath`:
 
 ```bash
 python3 -m pip install mpmath
-chmod +x Zeta.sh
+chmod +x Zeta.sh Public_Universe_TM.sh
 ./Zeta.sh 3
 ./Zeta.sh self
 ./Zeta.sh zero 1
 ./Zeta.sh live
 ./Zeta.sh live 4
+./Public_Universe_TM.sh 3
+./Public_Universe_TM.sh self
 ```
 
 - `./Zeta.sh H` evaluates the self-encoding objective at a finite scale `H>1`.
@@ -53,10 +55,42 @@ chmod +x Zeta.sh
 - `./Zeta.sh zero N` obtains the Nth critical-line zero numerically with `mpmath.zetazero`, maps it back to the corresponding self scale `H*=t_N/q`, and checks that the normalized objective is numerically near zero.
 - `./Zeta.sh live [H0]` deliberately does not halt. Starting at `H0` (default `2`), it emits one JSON state per iteration and uses `H_(n+1)=2 H_n`. Hence `lambda_n=1/H_n -> 0`, `r_n -> 2M+`, and `t_n=q H_n -> infinity`. Each live record has `HALT=false`, `OPEN=true`, and `FINAL=false`. Stop it externally with `Ctrl-C` or another process signal.
 
+## Public account meta-machine
+
+`Public_Universe_TM.sh` lifts the same reversible self-encoding idea to the current public GitHub repository state of `letsgo0226`.
+
+At each run it fetches every public repository exposed by the GitHub public user-repositories endpoint, paginates to exhaustion, sorts repositories canonically by name, and constructs
+
+\[
+W_t=\operatorname{Frame}(name,default\_branch,size,pushed\_at,fork,archived)_t.
+\]
+
+It then computes the exact reversible length-lex coordinate
+
+\[
+G_t=I(W_t),\qquad D(G_t)=W_t,
+\]
+
+and reports `WORLD_INDEX`, `WORLD_REV`, `PUBLIC_REPOS`, `META_SELF`, and a deterministic `TRUTH_PATH`. The truth path contributes one observed bit per repository: `1` for a currently non-archived public repository and `0` for an archived one. This is an account-state truth branch, not a proof of the semantics of every program.
+
+The account state also defines its own Riemann objective coordinate using
+
+\[
+q_t=\frac{\log(1+G_t)}{|W_t|},\qquad t=q_tH,
+\]
+
+and reports the same normalized completed-zeta objective `J`. Scheduled Actions re-run this observer, giving a temporal path
+
+\[
+W_0\to W_1\to W_2\to\cdots.
+\]
+
+This mode observes **all current public repositories and their canonical metadata**, not every historical commit or every source blob. Private repositories are excluded. The mapping of repositories to truth-tree positions and Riemann coordinates is a defined computational indexing structure; it is not a claim that GitHub repositories or physical universes are naturally indexed by zeta zeros.
+
 The live mode is a non-halting computational process, not a completed infinite computation: every finite runtime has produced only finitely many states, while the transition rule always defines a successor.
 
 `zero N` is a mapping of a numerically computed critical-line zero into this machine's self scale. It is **not** a proof of the Riemann Hypothesis, nor does the Schwarzschild/Stirling construction imply that arbitrary self-codes are zeta zeros.
 
 The Schwarzschild component is a formal continuation coordinate: `lambda=1-2M/r=1/H`, so `H→∞` gives `lambda→0+` and `r→2M+`. It is not a claim that the program models a physical black hole.
 
-The machine remains explicitly open-ended: `OPEN=true`, `FINAL=false`.
+The machines remain explicitly open-ended: `OPEN=true`, `FINAL=false`.
