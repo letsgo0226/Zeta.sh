@@ -88,6 +88,46 @@ jobs:
           assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
           assert a['OMEGA_LIMIT'] and b['OMEGA_LIMIT'] and a['OPEN'] and not a['FINAL']
           PY
+      - name: Verify exact omega-limit recursive machine
+        run: |
+          bytes=$(wc -c < OMEGA_Limit_TM.sh)
+          echo "OMEGA_Limit_TM.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n OMEGA_Limit_TM.sh
+          chmod +x OMEGA_Limit_TM.sh
+          ./OMEGA_Limit_TM.sh self | python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["SELF_SOLVED"] and x["SELF_INDEX"].startswith("0x")'
+          ./OMEGA_Limit_TM.sh 1 > /tmp/o1.json
+          ./OMEGA_Limit_TM.sh 4 > /tmp/o4.json
+          ./OMEGA_Limit_TM.sh omega > /tmp/omega.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('/tmp/o1.json'));b=json.load(open('/tmp/o4.json'));o=json.load(open('/tmp/omega.json'))
+          for x in (a,b):
+              n=x['N'];h=int(x['H'])
+              assert x['MODE']=='finite' and h==2**n
+              assert x['LAMBDA_NUM']==1 and x['LAMBDA_DEN']==h and x['EXACT_PRODUCT']
+              assert x['SCH_NUM']==2*h and x['SCH_DEN']==h-1
+              assert x['SELF_SOLVED'] and not x['OMEGA'] and x['OPEN'] and not x['FINAL']
+          assert int(b['H'])>int(a['H']) and float(b['LAMBDA'])<float(a['LAMBDA'])
+          assert float(b['STIR_12E'])<float(a['STIR_12E']) and float(b['ZETA_POLE_ERR'])<float(a['ZETA_POLE_ERR'])
+          assert o['MODE']=='omega' and o['H']=='Infinity' and o['LAMBDA']=='0' and o['SCH_R']=='2'
+          assert o['STIR_12E']=='0' and o['ZETA_POLE_ERR']=='0' and o['OMEGA'] and o['BOUNDARY_BY_DEFINITION']
+          assert not o['ATTAINED_BY_FINITE_EXECUTION'] and o['OPEN'] and not o['FINAL']
+          PY
+          set +e
+          timeout 2s ./OMEGA_Limit_TM.sh live 1 > /tmp/omega-live.jsonl
+          code=$?
+          set -e
+          test "$code" -eq 124
+          python3 - <<'PY'
+          import json
+          xs=[json.loads(x) for x in open('/tmp/omega-live.jsonl') if x.strip()]
+          assert len(xs)>=2
+          a,b=xs[:2]
+          assert a['MODE']==b['MODE']=='live' and b['N']==a['N']+1
+          assert int(b['H'])==2*int(a['H']) and float(b['LAMBDA'])<float(a['LAMBDA'])
+          assert not a['HALT'] and not b['HALT'] and a['OPEN'] and not a['FINAL']
+          PY
       - name: Verify paste-and-run independence
         run: |
           cmd=$(cat Zeta.sh)
