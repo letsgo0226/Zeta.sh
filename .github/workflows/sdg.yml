@@ -1,0 +1,92 @@
+name: SDG Research Machine
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      scores:
+        description: '17 comma-separated scores, each 0..100'
+        required: false
+        default: '100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100'
+      evidence:
+        description: 'physical feasibility, provenance, bounded uncertainty bits'
+        required: false
+        default: '111'
+  repository_dispatch:
+    types: [sdg-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact machine
+        run: |
+          b=$(wc -c < SDG_Research_TM.sh)
+          echo "bytes=$b"
+          test "$b" -lt 2048
+          bash -n SDG_Research_TM.sh
+          chmod +x SDG_Research_TM.sh
+      - name: Verify self and symbolic boundary
+        run: |
+          ./SDG_Research_TM.sh self > self.json
+          ./SDG_Research_TM.sh > omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json'));o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] and o['SELF_SOLVED']
+          assert o['GOALS']==17 and o['TOTAL_GAP']==0 and o['BOTTLENECK']==0
+          assert o['SOLUTION_ENTROPY']==0 and o['SDG_OMEGA']
+          assert o['BOUNDARY_BY_DEFINITION'] and not o['REAL_WORLD_VERIFIED']
+          assert o['FORMAL_MODEL_ONLY'] and o['OPEN'] and not o['FINAL']
+          PY
+      - name: Verify exact finite path
+        run: |
+          ./SDG_Research_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('finite.json'))
+          assert x['EPS_NUM']==1 and x['EPS_DEN']==16 and x['SELF_SOLVED']
+          PY
+      - name: Verify goal residuals
+        run: |
+          ./SDG_Research_TM.sh check 11111111111111111 > goals0.json
+          ./SDG_Research_TM.sh check 11111111111111110 > goals1.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('goals0.json'));b=json.load(open('goals1.json'))
+          assert a['ZERO_RESIDUAL'] and a['RESIDUAL']==0 and a['BOTTLENECK']==0
+          assert not b['ZERO_RESIDUAL'] and b['RESIDUAL']==1 and b['BOTTLENECK']==1
+          PY
+      - name: Assess scores with physical and information gates
+        env:
+          INPUT_SCORES: ${{ github.event.inputs.scores }}
+          INPUT_EVIDENCE: ${{ github.event.inputs.evidence }}
+        run: |
+          S="$INPUT_SCORES"; E="$INPUT_EVIDENCE"
+          [ -n "$S" ] || S='100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100'
+          [ -n "$E" ] || E='111'
+          ./SDG_Research_TM.sh assess "$S" "$E" > assessment.json
+          cat assessment.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdg-${{ github.run_id }}
+          path: |
+            self.json
+            omega.json
+            finite.json
+            goals0.json
+            goals1.json
+            assessment.json
