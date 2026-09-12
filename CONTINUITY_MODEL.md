@@ -1,92 +1,150 @@
-# Universal Continuity Engineering
+# Indefinite Continuity Engineering
 
-This repository contains a compact **formal research model** for indefinite continuity of biological and artificial agents. It is not a claim that biological immortality has been achieved, and it does not assume that present-day AI systems are sentient.
+This component treats biological and artificial long-term persistence as a **formal academic research problem in mathematics, physics, and information science**. It does not claim that biological immortality has been achieved, does not establish subjective continuity after copying, and does not assume that present-day AI systems are sentient.
 
-## Research state
+## 1. Research question
 
-Let a subject state be
-
-\[
-X_t=(I_t,V_t,C_t,R_t,W_t,A_t,N_t),
-\]
-
-where the symbolic constraints denote identity/invariants, viability, continuity, recoverability, welfare, autonomy, and non-harm.
-
-The compact machine uses the six-bit constraint vector
+The strong statement
 
 \[
-(V,C,R,W,A,N)\in\{0,1\}^6
+S(t)=1\quad\forall t\ge0
 \]
 
-and the residual
+would mean literal zero failure probability for all time. The research framework instead studies the weaker and testable question:
 
 \[
-\Delta(X)=\sum_i(1-C_i).
+\forall T<\infty,\ \forall\varepsilon>0,\ \exists\pi:\quad
+P_\pi(\tau_{\rm fail}>T)\ge1-\varepsilon,
 \]
 
-A zero-residual formal state satisfies all encoded constraints. If that state is the unique admissible recovery/continuation state, its model identity entropy is
+for specified failure classes and maintenance policy \(\pi\). This is an indefinite-continuity target, not a proof of literal immortality.
+
+## 2. State and viability
+
+Let
 
 \[
-H_{id}=\log_2(1)=0.
+X_t=(I_t,V_t,C_t,R_t,W_t,A_t,N_t,E_t),
 \]
 
-This is **solution/branch entropy**, not thermodynamic entropy.
-
-## Self encoding
-
-`Universal_Continuity_TM.sh` contains a reversible self-code coordinate
+where the components denote identity/invariants, viability, continuity, recoverability, welfare, autonomy, non-harm, and physical/environmental state. A viability region is
 
 \[
-G=I(R),\qquad D(G)=R,
+\mathcal V=\{X:\text{specified viability, continuity, welfare and physical constraints hold}\}.
 \]
 
-where `R` is its canonical quine core. `SELF_SOLVED=true` only certifies exact byte recovery of the encoded core.
-
-## Open finite path
-
-`finite n` defines the exact rational research bound
+A controlled trajectory may be written
 
 \[
-\epsilon_n=2^{-n}.
+X_{t+1}=F(X_t,u_t,w_t),
 \]
 
-It is emitted as integer numerator/denominator pairs rather than a floating-point approximation. The formal limit is
+with maintenance/repair action \(u_t\) and disturbance \(w_t\). The central control problem is whether suitable policies keep the trajectory in \(\mathcal V\) over arbitrarily long finite horizons.
+
+## 3. Reliability and exact finite path
+
+For hazard rate \(h(t)\), the survival function is
 
 \[
-\epsilon_n\to0,
+S(t)=\exp\!\left(-\int_0^t h(u)\,du\right).
 \]
 
-while every finite execution has \(\epsilon_n>0\).
+`finite n` uses the exact rational model bound
 
-The no-argument/`omega` mode is a symbolic boundary with `RISK_NUM=0`, `RESIDUAL=0`, and `IDENTITY_ENTROPY=0`. It explicitly reports
+\[
+\epsilon_n=2^{-n},
+\]
 
-```text
-BOUNDARY_BY_DEFINITION=true
-ATTAINED_BY_FINITE_EXECUTION=false
-FORMAL_MODEL_ONLY=true
-OPEN=true
-FINAL=false
-```
+emitted as numerator/denominator pairs. Every finite execution has \(\epsilon_n>0\), while
 
-so the boundary is not presented as an empirically achieved immortality state.
+\[
+\epsilon_n\to0.
+\]
 
-## Biological and AI modes
+The default `omega` state sets the symbolic target risk and residual to zero but explicitly reports `BOUNDARY_BY_DEFINITION=true` and `ATTAINED_BY_FINITE_EXECUTION=false`.
+
+## 4. Physics
+
+Long-term persistence must remain inside a physically feasible region. A biological or artificial system must obtain free energy, export waste heat, replace or repair damaged matter, and obey conservation laws. The framework therefore does **not** identify continuity with zero thermodynamic entropy.
+
+For an open nonequilibrium subsystem one may schematically write
+
+\[
+\frac{dS_{\rm int}}{dt}=\dot S_{\rm prod}-\dot S_{\rm export},
+\]
+
+while total entropy production remains compatible with the second law. The compact machine consequently emits `THERMODYNAMIC_ZERO_ENTROPY=false`. Its `IDENTITY_ENTROPY=0` is solution/branch entropy only.
+
+## 5. Information science and identity
+
+A noisy state transition and repair process may be represented as
+
+\[
+X_t\xrightarrow{\mathcal N_t}\widetilde X_t
+\xrightarrow{\mathcal R_t}X_{t+1}.
+\]
+
+Research tools include error correction, replication, checkpointing, formal verification, provenance, bounded uncertainty, and fault-tolerant recovery. Identity continuity is represented separately by a relation
+
+\[
+X_t\sim_c X_{t+1}.
+\]
+
+A byte-identical copy is not, by itself, a proof of personal or phenomenal continuity. For AI, the executable model therefore returns `SENTIENCE_ASSUMED=false`.
+
+If \(\mathcal A(X)\) is the set of admissible recovery states, the model identity entropy is
+
+\[
+H_{id}=\log_2|\mathcal A|.
+\]
+
+Thus \(H_{id}=0\) means a unique admissible continuation **within the encoded model**, not zero physical entropy and not proof of subjective identity.
+
+## 6. Compact executable model
+
+`Universal_Continuity_TM.sh` is kept below 2048 bytes and retains the reversible self-coordinate
+
+\[
+G=I(R),\qquad D(G)=R.
+\]
+
+The six-bit research constraint vector is
+
+\[
+(V,C,R,W,A,N)\in\{0,1\}^6,
+\]
+
+and the four evidence bits are
+
+\[
+(P,Q,U,I)\in\{0,1\}^4,
+\]
+
+representing physical feasibility, provenance completeness, bounded uncertainty, and identity-continuity evidence. The executable residual is the number of failed constraint/evidence gates.
 
 Examples:
 
 ```bash
-./Universal_Continuity_TM.sh bio 111111
-./Universal_Continuity_TM.sh ai 101111
+./Universal_Continuity_TM.sh
+./Universal_Continuity_TM.sh self
+./Universal_Continuity_TM.sh finite 4
+./Universal_Continuity_TM.sh assess bio 111111 1111
+./Universal_Continuity_TM.sh assess ai 101111 1111
 ```
 
-For `bio`, the six bits are abstract research constraints only; they are not medical diagnostics or treatment claims.
+A zero residual only means all **encoded** gates are satisfied. Even then the output retains `REAL_WORLD_VERIFIED=false` and `FORMAL_MODEL_ONLY=true`; empirical validation must come from independent biological, physical, engineering, or computational evidence.
 
-For `ai`, the machine explicitly returns `SENTIENCE_ASSUMED=false`. Functional persistence, copying, memory preservation, and subjective/personal continuity are separate research questions.
+## 7. Open-system interpretation
 
-## Academic interpretation
+The intended academic question is:
 
-The intended research question is:
+> Can a physically realizable, self-maintaining information system preserve identity, viability, recoverability, welfare, autonomy, and non-harm over arbitrarily long finite horizons while driving specified failure risk toward zero?
 
-> Can a self-encoding system preserve viability, identity continuity, recoverability, welfare, autonomy, and non-harm over an open-ended sequence of finite transitions while driving explicit failure bounds toward zero?
+The framework is locally checkable but globally open. No finite failure model can certify that every possible future disturbance has been enumerated. Accordingly the machine retains
 
-This connects computability, reliability theory, formal verification, fault tolerance, identity/continuity models, and ethics. The system is deliberately Gödel-open in spirit: finite specified checks can be decidable, while no claim is made that all future failure modes or all questions about identity and sentience are captured.
+```text
+OPEN=true
+FINAL=false
+```
+
+The formal objective is therefore **indefinite verified continuity under explicit assumptions**, not a declaration of achieved immortality.
