@@ -1,0 +1,100 @@
+name: Cosmic Future Research
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      galaxy_r:
+        description: 'dimensionless separation proxy r'
+        required: false
+        default: '10'
+      galaxy_v:
+        description: 'dimensionless relative speed proxy v'
+        required: false
+        default: '1'
+      galaxy_mu:
+        description: 'dimensionless GM parameter mu'
+        required: false
+        default: '10'
+  repository_dispatch:
+    types: [cosmic-future-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cosmic-future-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact machine
+        run: |
+          b=$(wc -c < Cosmic_Future_TM.sh)
+          echo "bytes=$b"
+          test "$b" -lt 2048
+          bash -n Cosmic_Future_TM.sh
+          chmod +x Cosmic_Future_TM.sh
+      - name: Verify self and open boundary
+        run: |
+          ./Cosmic_Future_TM.sh self > self.json
+          ./Cosmic_Future_TM.sh > omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json'));o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] and o['SELF_SOLVED']
+          assert o['EPS_NUM']==0 and o['BOUNDARY_BY_DEFINITION']
+          assert not o['GALAXY_COLLISION_SOLVED'] and not o['TIME_TERMINATION_SOLVED'] and not o['HEAT_DEATH_SOLVED']
+          assert not o['REAL_WORLD_VERIFIED'] and o['FORMAL_MODEL_ONLY']
+          assert o['OPEN'] and not o['FINAL']
+          PY
+      - name: Verify exact finite path
+        run: |
+          ./Cosmic_Future_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('finite.json'))
+          assert x['EPS_NUM']==1 and x['EPS_DEN']==16 and x['SELF_SOLVED']
+          PY
+      - name: Verify galaxy proxy
+        env:
+          R: ${{ github.event.inputs.galaxy_r }}
+          V: ${{ github.event.inputs.galaxy_v }}
+          MU: ${{ github.event.inputs.galaxy_mu }}
+        run: |
+          R=${R:-10}; V=${V:-1}; MU=${MU:-10}
+          ./Cosmic_Future_TM.sh galaxy "$R" "$V" "$MU" > galaxy.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('galaxy.json'))
+          assert x['COLLISION_NOT_IMPLIED'] and x['N_BODY_REQUIRED']
+          assert not x['REAL_WORLD_VERIFIED']
+          PY
+      - name: Verify time and heat-death semantics
+        run: |
+          ./Cosmic_Future_TM.sh time 1 0 > time.json
+          ./Cosmic_Future_TM.sh heat 0 0 > heat.json
+          python3 - <<'PY'
+          import json
+          t=json.load(open('time.json'));h=json.load(open('heat.json'))
+          assert t['GEODESIC_INCOMPLETE_PROXY'] and not t['TIME_STOPS'] and not t['GLOBAL_SPACETIME_VERIFIED']
+          assert h['EQUILIBRIUM_PROXY'] and not h['HEAT_DEATH_VERIFIED'] and h['GRAVITY_COSMOLOGY_REQUIRED']
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cosmic-future-${{ github.run_id }}
+          path: |
+            self.json
+            omega.json
+            finite.json
+            galaxy.json
+            time.json
+            heat.json
