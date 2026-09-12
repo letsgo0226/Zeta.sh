@@ -1,0 +1,116 @@
+name: Civilizational Continuity Research
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      subject:
+        description: 'bio or ai'
+        required: false
+        default: 'bio'
+      agent:
+        description: 'V,C,R,W,A,N as six bits'
+        required: false
+        default: '111111'
+      peace:
+        description: 'peace continuity as five bits'
+        required: false
+        default: '11111'
+      sdg:
+        description: '17 SDG gates as seventeen bits'
+        required: false
+        default: '11111111111111111'
+      cosmic:
+        description: 'galactic, worldline, free-energy as three bits'
+        required: false
+        default: '111'
+      evidence:
+        description: 'provenance, uncertainty, identity, physical-model as four bits'
+        required: false
+        default: '1111'
+  repository_dispatch:
+    types: [civilizational-continuity-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: civilizational-continuity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact machine
+        run: |
+          b=$(wc -c < Civilizational_Continuity_TM.sh)
+          echo "bytes=$b"
+          test "$b" -lt 2048
+          bash -n Civilizational_Continuity_TM.sh
+          chmod +x Civilizational_Continuity_TM.sh
+      - name: Verify self and symbolic boundary
+        run: |
+          ./Civilizational_Continuity_TM.sh self > self.json
+          ./Civilizational_Continuity_TM.sh omega > omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json'));o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] and o['SELF_SOLVED']
+          assert o['RESIDUAL']==0 and o['SOLUTION_ENTROPY']==0
+          assert o['PEACE_GATE'] and o['SDG_GATE'] and o['COSMIC_GATE']
+          assert o['BOUNDARY_BY_DEFINITION'] and not o['ATTAINED_BY_FINITE_EXECUTION']
+          assert not o['REAL_WORLD_VERIFIED'] and not o['WORLD_PEACE_VERIFIED']
+          assert not o['SDGS_VERIFIED'] and not o['IMMORTALITY_VERIFIED']
+          assert o['FORMAL_MODEL_ONLY'] and o['OPEN'] and not o['FINAL']
+          PY
+      - name: Verify exact finite path
+        run: |
+          ./Civilizational_Continuity_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('finite.json'))
+          assert x['SELF_SOLVED'] and x['EPS_NUM']==1 and x['EPS_DEN']==16
+          PY
+      - name: Verify coupled civilization states
+        run: |
+          ./Civilizational_Continuity_TM.sh assess bio 111111 11111 11111111111111111 111 1111 > ideal.json
+          ./Civilizational_Continuity_TM.sh assess ai 101111 11110 11111111111111110 101 1110 > stress.json
+          python3 - <<'PY'
+          import json
+          i=json.load(open('ideal.json'));s=json.load(open('stress.json'))
+          assert i['ZERO_RESIDUAL'] and i['SOLUTION_ENTROPY']==0
+          assert i['PEACE_GATE'] and i['SDG_GATE'] and i['COSMIC_GATE']
+          assert s['RESIDUAL']==5 and not s['ZERO_RESIDUAL']
+          assert not s['PEACE_GATE'] and not s['SDG_GATE'] and not s['COSMIC_GATE']
+          assert s['SENTIENCE_ASSUMED'] is False
+          PY
+      - name: Assess requested state
+        env:
+          SUBJECT: ${{ github.event.inputs.subject }}
+          AGENT: ${{ github.event.inputs.agent }}
+          PEACE: ${{ github.event.inputs.peace }}
+          SDG: ${{ github.event.inputs.sdg }}
+          COSMIC: ${{ github.event.inputs.cosmic }}
+          EVIDENCE: ${{ github.event.inputs.evidence }}
+        run: |
+          S="${SUBJECT:-bio}"; A="${AGENT:-111111}"; P="${PEACE:-11111}"
+          G="${SDG:-11111111111111111}"; C="${COSMIC:-111}"; E="${EVIDENCE:-1111}"
+          ./Civilizational_Continuity_TM.sh assess "$S" "$A" "$P" "$G" "$C" "$E" > assessment.json
+          cat assessment.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: civilizational-continuity-${{ github.run_id }}
+          path: |
+            self.json
+            omega.json
+            finite.json
+            ideal.json
+            stress.json
+            assessment.json
