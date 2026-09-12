@@ -7,6 +7,19 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      subject:
+        description: 'bio or ai'
+        required: false
+        default: 'bio'
+      constraints:
+        description: 'V,C,R,W,A,N as six bits'
+        required: false
+        default: '111111'
+      evidence:
+        description: 'physics, provenance, uncertainty, identity evidence as four bits'
+        required: false
+        default: '1111'
   repository_dispatch:
     types: [continuity-evolve]
 
@@ -38,12 +51,14 @@ jobs:
           import json
           s=json.load(open('self.json'));o=json.load(open('omega.json'))
           assert s['SELF_SOLVED'] and o['SELF_SOLVED']
-          assert o['RISK_NUM']==0 and o['RISK_DEN']==1 and o['RESIDUAL']==0
-          assert o['IDENTITY_ENTROPY']==0 and o['BOUNDARY_BY_DEFINITION']
-          assert not o['ATTAINED_BY_FINITE_EXECUTION'] and o['FORMAL_MODEL_ONLY']
+          assert o['RISK_NUM']==0 and o['HAZARD_TARGET']==0 and o['RESIDUAL']==0
+          assert o['IDENTITY_ENTROPY']==0 and o['PHYSICAL_FEASIBLE'] and o['INFORMATION_GATE']
+          assert not o['THERMODYNAMIC_ZERO_ENTROPY']
+          assert o['BOUNDARY_BY_DEFINITION'] and not o['ATTAINED_BY_FINITE_EXECUTION']
+          assert not o['REAL_WORLD_VERIFIED'] and o['FORMAL_MODEL_ONLY']
           assert o['OPEN'] and not o['FINAL']
           PY
-      - name: Verify exact finite path
+      - name: Verify exact finite risk path
         run: |
           ./Universal_Continuity_TM.sh finite 4 > finite.json
           python3 - <<'PY'
@@ -53,18 +68,30 @@ jobs:
           assert x['HAZARD_BOUND_NUM']==1 and x['HAZARD_BOUND_DEN']==16
           assert x['RESIDUAL_BOUND_NUM']==1 and x['RESIDUAL_BOUND_DEN']==16
           PY
-      - name: Verify biological and AI continuity constraints
+      - name: Verify biological and artificial assessments
         run: |
-          ./Universal_Continuity_TM.sh bio 111111 > bio.json
-          ./Universal_Continuity_TM.sh ai 101111 > ai.json
+          ./Universal_Continuity_TM.sh assess bio 111111 1111 > bio.json
+          ./Universal_Continuity_TM.sh assess ai 101111 1111 > ai.json
           python3 - <<'PY'
           import json
           b=json.load(open('bio.json'));a=json.load(open('ai.json'))
           assert b['ZERO_RESIDUAL'] and b['IDENTITY_ENTROPY']==0
-          assert not b['REAL_WORLD_VERIFIED'] and b['FORMAL_MODEL_ONLY']
-          assert not a['ZERO_RESIDUAL'] and a['RESIDUAL']==1
-          assert a['SENTIENCE_ASSUMED'] is False
+          assert b['PHYSICAL_FEASIBLE'] and b['PROVENANCE_COMPLETE'] and b['UNCERTAINTY_BOUNDED'] and b['IDENTITY_EVIDENCE']
+          assert not b['THERMODYNAMIC_ZERO_ENTROPY'] and not b['REAL_WORLD_VERIFIED']
+          assert not a['ZERO_RESIDUAL'] and a['RESIDUAL']==1 and a['SENTIENCE_ASSUMED'] is False
           PY
+      - name: Assess requested research state
+        env:
+          SUBJECT: ${{ github.event.inputs.subject }}
+          CONSTRAINTS: ${{ github.event.inputs.constraints }}
+          EVIDENCE: ${{ github.event.inputs.evidence }}
+        run: |
+          S="$SUBJECT"; C="$CONSTRAINTS"; E="$EVIDENCE"
+          [ -n "$S" ] || S=bio
+          [ -n "$C" ] || C=111111
+          [ -n "$E" ] || E=1111
+          ./Universal_Continuity_TM.sh assess "$S" "$C" "$E" > assessment.json
+          cat assessment.json
       - uses: actions/upload-artifact@v4
         with:
           name: continuity-${{ github.run_id }}
@@ -74,3 +101,4 @@ jobs:
             finite.json
             bio.json
             ai.json
+            assessment.json
