@@ -1,0 +1,76 @@
+name: Food Continuity Research
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [food-continuity-evolve]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compact machine
+        run: |
+          set -euo pipefail
+          test "$(wc -c < Food_Continuity_TM.sh)" -lt 2048
+          bash -n Food_Continuity_TM.sh
+          chmod +x Food_Continuity_TM.sh
+      - name: Verify self and symbolic boundary
+        run: |
+          set -euo pipefail
+          ./Food_Continuity_TM.sh self > self.json
+          ./Food_Continuity_TM.sh omega > omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json')); o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert o['RESIDUAL']==0 and o['SOLUTION_ENTROPY']==0
+          assert o['REAL_WORLD_VERIFIED'] is False
+          assert o['NUTRITION_COMPLETE_VERIFIED'] is False
+          assert o['CULTIVATED_MEAT_SCALABLE_VERIFIED'] is False
+          assert o['FORMAL_MODEL_ONLY'] is True and o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - name: Verify exact finite path
+        run: |
+          set -euo pipefail
+          ./Food_Continuity_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('finite.json'))
+          assert x['EPS_NUM']==1 and x['EPS_DEN']==16
+          PY
+      - name: Verify plant cultivated and stress states
+        run: |
+          set -euo pipefail
+          ./Food_Continuity_TM.sh assess plant 111111111111 111111 00000 1111 > plant.json
+          ./Food_Continuity_TM.sh assess cultivated 111111111111 111111 11111 1111 > cultivated.json
+          ./Food_Continuity_TM.sh assess hybrid 101111111111 111110 10111 1110 > stress.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('plant.json')); c=json.load(open('cultivated.json')); s=json.load(open('stress.json'))
+          assert p['RESIDUAL']==0 and p['PROCESS'] is None and p['PROCESS_GATE'] is True
+          assert c['RESIDUAL']==0 and c['PROCESS_GATE'] is True
+          assert s['RESIDUAL']==4 and s['ZERO_RESIDUAL'] is False
+          for x in (p,c,s):
+              assert x['REAL_WORLD_VERIFIED'] is False
+              assert x['PERSONALIZED_MEDICAL_CLAIM'] is False
+              assert x['OPEN'] is True and x['FINAL'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: food-continuity-results
+          path: |
+            self.json
+            omega.json
+            finite.json
+            plant.json
+            cultivated.json
+            stress.json
