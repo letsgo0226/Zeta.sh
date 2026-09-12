@@ -1,0 +1,56 @@
+name: Peace Proposal Machine
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      conflict:
+        description: Conflict label to evaluate
+        required: false
+        default: GLOBAL
+  repository_dispatch:
+    types: [peace-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peace-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  peace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CONFLICT: ${{ github.event.inputs.conflict || github.event.client_payload.conflict || 'GLOBAL' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact one-liner
+        run: |
+          bytes=$(wc -c < Peace_Action_TM.sh)
+          echo "Peace_Action_TM.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n Peace_Action_TM.sh
+          chmod +x Peace_Action_TM.sh
+      - name: Generate peace proposal
+        run: ./Peace_Action_TM.sh "$CONFLICT" | tee peace.json
+      - name: Verify proposal semantics
+        run: |
+          python3 - <<'PY'
+          import json
+          x=json.load(open('peace.json'))
+          assert x['SELF_SOLVED'] and x['NO_WAR_TARGET']
+          assert x['TARGET_ERROR']==0 and x['TARGET_ZERO_ENTROPY'] and x['INFO_H']==0
+          assert x['NONCOERCIVE'] and not x['REAL_WORLD_VERIFIED']
+          assert x['CLAIM']=='proposal-not-outcome' and x['OPEN'] and not x['FINAL']
+          assert len(x['PLAN'])==7
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: peace-proposal-${{ github.run_id }}
+          path: peace.json
