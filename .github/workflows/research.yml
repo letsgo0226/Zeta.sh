@@ -1,0 +1,65 @@
+name: Academic Research Machine
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [research-evolve]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact machine
+        run: |
+          bytes=$(wc -c < Research_Framework_TM.sh)
+          echo "Research_Framework_TM.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n Research_Framework_TM.sh
+          chmod +x Research_Framework_TM.sh
+      - name: Run formal states
+        run: |
+          ./Research_Framework_TM.sh self > self.json
+          ./Research_Framework_TM.sh > omega.json
+          ./Research_Framework_TM.sh finite 4 > finite.json
+          ./Research_Framework_TM.sh peace 1111111 > peace0.json
+          ./Research_Framework_TM.sh peace 1011111 > peace1.json
+      - name: Verify exact semantics
+        run: |
+          python3 - <<'PY'
+          import json
+          S=json.load(open('self.json')); O=json.load(open('omega.json'))
+          F=json.load(open('finite.json')); P0=json.load(open('peace0.json')); P1=json.load(open('peace1.json'))
+          assert S['SELF_SOLVED']
+          assert O['SELF_SOLVED'] and O['DELTA']==0 and O['SOLUTION_ENTROPY']==0
+          assert O['LOCAL_COMPLETE'] and O['GLOBAL_GODEL_OPEN'] and O['OPEN'] and not O['FINAL']
+          H=F['H']; assert H*F['LAMBDA_NUM']==F['LAMBDA_DEN']
+          assert F['SCH_NUM']==2*H and F['SCH_DEN']==H-1
+          assert F['STIR_LO_NUM']==12 and F['STIR_LO_DEN']==12*H+1
+          assert F['STIR_HI_NUM']==1 and F['STIR_HI_DEN']==H
+          assert P0['ZERO_RESIDUAL'] and P0['RESIDUAL']==0 and P0['SOLUTION_ENTROPY']==0
+          assert not P0['REAL_WORLD_VERIFIED'] and P0['CLAIM']=='formal-model-only'
+          assert not P1['ZERO_RESIDUAL'] and P1['RESIDUAL']==1
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: academic-research-${{ github.run_id }}
+          path: |
+            self.json
+            omega.json
+            finite.json
+            peace0.json
+            peace1.json
