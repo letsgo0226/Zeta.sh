@@ -6,6 +6,9 @@ on:
       - 'Quiet_Control_TM.py'
       - 'Safety_Guard_TM.py'
       - 'PAQS_Supervisor.py'
+      - 'FxLMS_DSP.py'
+      - 'Safety_MCU_Model.py'
+      - 'BLE_Control_Contract.py'
       - 'PAQS_MODEL.md'
       - '.github/workflows/paqs.yml'
   pull_request:
@@ -28,7 +31,7 @@ jobs:
       - name: Static checks
         run: |
           bash -n Spectral_Core_TM.sh
-          python -m py_compile Quiet_Control_TM.py Safety_Guard_TM.py PAQS_Supervisor.py
+          python -m py_compile Quiet_Control_TM.py Safety_Guard_TM.py PAQS_Supervisor.py FxLMS_DSP.py Safety_MCU_Model.py BLE_Control_Contract.py
       - name: Spectral formal plane
         run: |
           chmod +x Spectral_Core_TM.sh
@@ -62,6 +65,27 @@ jobs:
           assert v['ACTUATE'] is False and v['SAFETY_VETO'] is True
           assert v['ABSOLUTE_SAFETY_VERIFIED'] is False and v['REAL_WORLD_VERIFIED'] is False
           PY
+      - name: Local FxLMS and MCU interlock stage
+        run: |
+          python FxLMS_DSP.py simulate 80 2 2000 > fxlms.json
+          python Safety_MCU_Model.py assess 1 1 1 1 1 0 20 > mcu_ok.json
+          python Safety_MCU_Model.py assess 1 1 1 1 1 1 20 > mcu_emergency.json
+          python Safety_MCU_Model.py assess 1 1 1 1 1 0 300 > mcu_timeout.json
+          python BLE_Control_Contract.py validate '{"op":"set_mode","value":"meditation"}' > ble_ok.json
+          python BLE_Control_Contract.py validate '{"op":"amp_enable","value":true}' > ble_denied.json
+          python - <<'PY'
+          import json
+          from Safety_MCU_Model import SafetyInterlock
+          f=json.load(open('fxlms.json')); a=json.load(open('mcu_ok.json')); e=json.load(open('mcu_emergency.json')); t=json.load(open('mcu_timeout.json')); b=json.load(open('ble_ok.json')); d=json.load(open('ble_denied.json'))
+          assert f['IMPROVED'] is True and f['SAFETY_AUTHORITY'] is False and f['HARDWARE_IO'] is False
+          assert a['AMP_ENABLE'] is True and a['APP_CAN_OVERRIDE'] is False
+          assert e['AMP_ENABLE'] is False and e['AMP_DISABLE_ASSERTED'] is True
+          assert t['HEARTBEAT_OK'] is False and t['AMP_ENABLE'] is False
+          assert b['ACCEPTED'] is True and b['CONFIGURATION_ONLY'] is True
+          assert d['ACCEPTED'] is False and d['REASON']=='SAFETY_AUTHORITY_FORBIDDEN'
+          i=SafetyInterlock(); i.evaluate(True,True,True,True,True,True,0); z=i.evaluate(True,True,True,True,True,False,0)
+          assert z['EMERGENCY_LATCH'] is True and z['AMP_ENABLE'] is False
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: paqs-research-state
@@ -75,3 +99,9 @@ jobs:
             alarm_fault.json
             run.json
             veto.json
+            fxlms.json
+            mcu_ok.json
+            mcu_emergency.json
+            mcu_timeout.json
+            ble_ok.json
+            ble_denied.json
