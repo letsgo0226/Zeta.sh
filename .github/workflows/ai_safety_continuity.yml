@@ -1,0 +1,80 @@
+name: AI Safety Continuity Research
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ai-safety-continuity-evolve]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compact machine
+        run: |
+          set -euo pipefail
+          test "$(wc -c < AI_Safety_Continuity_TM.sh)" -lt 2048
+          bash -n AI_Safety_Continuity_TM.sh
+          chmod +x AI_Safety_Continuity_TM.sh Civilizational_Continuity_TM.sh
+      - name: Verify self symbolic boundary and exact finite path
+        run: |
+          set -euo pipefail
+          ./AI_Safety_Continuity_TM.sh self > self.json
+          ./AI_Safety_Continuity_TM.sh omega > omega.json
+          ./AI_Safety_Continuity_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json'));o=json.load(open('omega.json'));f=json.load(open('finite.json'))
+          assert s['SELF_SOLVED'] is True
+          assert o['EXCESS_GAP']==0 and o['EVIDENCE_RESIDUAL']==0
+          assert o['AI_SAFETY_VERIFIED'] is False and o['REAL_WORLD_VERIFIED'] is False
+          assert o['FORMAL_MODEL_ONLY'] is True and o['OPEN'] is True and o['FINAL'] is False
+          assert f['EPS_NUM']==1 and f['EPS_DEN']==16
+          PY
+      - name: Verify differential pacing states
+        run: |
+          set -euo pipefail
+          ./AI_Safety_Continuity_TM.sh assess 90 85 5 111111 > target.json
+          ./AI_Safety_Continuity_TM.sh assess 95 70 5 101101 > stress.json
+          python3 - <<'PY'
+          import json
+          t=json.load(open('target.json'));s=json.load(open('stress.json'))
+          assert t['RESIDUAL']==0 and t['MODEL_RELEASE_GATE'] is True
+          assert t['MODEL_CAPABILITY_PACE']=='normal' and t['SAFETY_ACCELERATE'] is False
+          assert s['EXCESS_GAP']==20 and s['EVIDENCE_RESIDUAL']==2 and s['RESIDUAL']==22
+          assert s['MODEL_CAPABILITY_PACE']=='slow' and s['SAFETY_ACCELERATE'] is True
+          assert s['MODEL_RELEASE_GATE'] is False
+          for x in (t,s):
+              assert x['AI_SAFETY_VERIFIED'] is False and x['REAL_WORLD_VERIFIED'] is False
+              assert x['OPEN'] is True and x['FINAL'] is False
+          PY
+      - name: Verify civilizational continuity interface
+        run: |
+          set -euo pipefail
+          ./Civilizational_Continuity_TM.sh assess ai 111111 11111 11111111111111111 111 1111 > civilization.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('target.json'));c=json.load(open('civilization.json'))
+          z={'AI_SAFETY_RESIDUAL':a['RESIDUAL'],'CIVILIZATION_RESIDUAL':c['RESIDUAL'],'COMBINED_RESIDUAL':a['RESIDUAL']+c['RESIDUAL'],'REAL_WORLD_VERIFIED':False,'OPEN':True,'FINAL':False}
+          assert z['COMBINED_RESIDUAL']==0
+          json.dump(z,open('combined.json','w'),separators=(',',':'))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-safety-continuity-results
+          path: |
+            self.json
+            omega.json
+            finite.json
+            target.json
+            stress.json
+            civilization.json
+            combined.json
