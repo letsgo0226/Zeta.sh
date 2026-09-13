@@ -1,0 +1,84 @@
+name: Generative Metatheory Research
+on:
+  push:
+    paths:
+      - 'Generative_Metatheory_TM.py'
+      - 'GENERATIVE_METATHEORY_OF_PHYSICAL_WORLDS.md'
+      - '.github/workflows/generative_metatheory.yml'
+  pull_request:
+    paths:
+      - 'Generative_Metatheory_TM.py'
+      - 'GENERATIVE_METATHEORY_OF_PHYSICAL_WORLDS.md'
+      - '.github/workflows/generative_metatheory.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [generative-metatheory-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Static and self checks
+        run: |
+          python -m py_compile Generative_Metatheory_TM.py
+          python Generative_Metatheory_TM.py self > self.json
+          python - <<'PY'
+          import json
+          x=json.load(open('self.json'))
+          assert x['SELF_SOLVED'] is True
+          assert x['FORMAL_MODEL_ONLY'] is True
+          assert x['OPEN'] is True and x['FINAL'] is False
+          PY
+      - name: Structured possibility and empirical boundary
+        run: |
+          python Generative_Metatheory_TM.py world 7 > world.json
+          python Generative_Metatheory_TM.py pipeline 7 > pipeline.json
+          python Generative_Metatheory_TM.py dice 4 > dice.json
+          python - <<'PY'
+          import json
+          w=json.load(open('world.json')); p=json.load(open('pipeline.json')); d=json.load(open('dice.json'))
+          assert w['FORMAL_POSSIBILITY'] is True
+          assert w['PHYSICAL_REALITY_VERIFIED'] is False and w['EMPIRICALLY_ADEQUATE'] is False
+          assert p['EMPIRICAL_DATA_STAGE']=='absent' and p['EMPIRICAL_SCIENCE_VERIFIED'] is False
+          assert p['FORMAL_POSSIBILITY_EQUALS_PHYSICAL_REALITY'] is False
+          assert d['STRUCTURED_PROBABILITY'] is True and d['PHYSICAL_QUANTUM_MODEL'] is False
+          den=d['TOTAL_WEIGHT']; assert sum(x['p_num'] for x in d['OUTCOMES'])==den
+          assert all(x['p_den']==den for x in d['OUTCOMES'])
+          PY
+      - name: Extension and logic boundaries
+        run: |
+          python Generative_Metatheory_TM.py extend psi > extend.json
+          python Generative_Metatheory_TM.py logic > logic.json
+          python Generative_Metatheory_TM.py omega > omega.json
+          python - <<'PY'
+          import json
+          e=json.load(open('extend.json')); l=json.load(open('logic.json')); o=json.load(open('omega.json'))
+          assert e['CONSERVATIVE_BY_CONSTRUCTION'] is True
+          assert e['OLD_SENTENCE_SEMANTICS_CHANGED'] is False
+          assert e['NEW_PHYSICAL_POSSIBILITY_VERIFIED'] is False
+          assert l['FINITE_TABLEAU_BRANCH_CLOSURE_CHECKABLE'] is True
+          assert l['FOL_VALIDITY_DECIDABLE'] is False
+          assert l['FOL_VALIDITY_RECURSIVELY_ENUMERABLE'] is True
+          assert l['GODEL_GLOBAL_COMPLETENESS_NOT_CLAIMED'] is True
+          assert o['UNIVERSE_IS_COMPUTATION_VERIFIED'] is False
+          assert o['ALL_FORMAL_POSSIBILITIES_ENUMERATED'] is False
+          assert o['UNIQUE_FINAL_THEORY_VERIFIED'] is False
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generative-metatheory-state
+          path: |
+            self.json
+            world.json
+            pipeline.json
+            dice.json
+            extend.json
+            logic.json
+            omega.json
