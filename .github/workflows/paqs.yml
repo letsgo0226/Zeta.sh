@@ -1,0 +1,77 @@
+name: PAQS Research
+on:
+  push:
+    paths:
+      - 'Spectral_Core_TM.sh'
+      - 'Quiet_Control_TM.py'
+      - 'Safety_Guard_TM.py'
+      - 'PAQS_Supervisor.py'
+      - 'PAQS_MODEL.md'
+      - '.github/workflows/paqs.yml'
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  repository_dispatch:
+    types: [paqs-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install --disable-pip-version-check mpmath
+      - name: Static checks
+        run: |
+          bash -n Spectral_Core_TM.sh
+          python -m py_compile Quiet_Control_TM.py Safety_Guard_TM.py PAQS_Supervisor.py
+      - name: Spectral formal plane
+        run: |
+          chmod +x Spectral_Core_TM.sh
+          ./Spectral_Core_TM.sh self > self.json
+          ./Spectral_Core_TM.sh finite 4 > finite.json
+          ./Spectral_Core_TM.sh omega > omega.json
+          python - <<'PY'
+          import json
+          s=json.load(open('self.json')); f=json.load(open('finite.json')); o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert f['LAMBDA_NUM']==1 and f['LAMBDA_DEN']==16
+          assert o['BOUNDARY_BY_DEFINITION'] is True and o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - name: Independent planes and hard veto
+        run: |
+          python Quiet_Control_TM.py assess 62 34 1 1 > acoustic.json
+          python Safety_Guard_TM.py assess 1 1 1 1 0 > safe.json
+          python Safety_Guard_TM.py assess 1 1 1 1 1 > emergency.json
+          python Safety_Guard_TM.py assess 1 1 0 1 0 > alarm_fault.json
+          python PAQS_Supervisor.py assess 62 34 1 1 1 1 1 1 0 > run.json
+          python PAQS_Supervisor.py assess 62 34 1 1 1 1 1 1 1 > veto.json
+          python - <<'PY'
+          import json
+          a=json.load(open('acoustic.json')); s=json.load(open('safe.json')); e=json.load(open('emergency.json')); q=json.load(open('alarm_fault.json')); r=json.load(open('run.json')); v=json.load(open('veto.json'))
+          assert a['ACTUATOR_REQUEST'] is True and a['SAFETY_AUTHORITY'] is False
+          assert s['ANC_ALLOWED'] is True and s['APP_CAN_OVERRIDE'] is False
+          assert e['ANC_ALLOWED'] is False and e['HARD_VETO'] is True
+          assert q['ANC_ALLOWED'] is False and q['HARD_VETO'] is True
+          assert r['ACTUATE'] is True and r['APP_CAN_BYPASS_SAFETY'] is False
+          assert v['ACTUATE'] is False and v['SAFETY_VETO'] is True
+          assert v['ABSOLUTE_SAFETY_VERIFIED'] is False and v['REAL_WORLD_VERIFIED'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paqs-research-state
+          path: |
+            self.json
+            finite.json
+            omega.json
+            acoustic.json
+            safe.json
+            emergency.json
+            alarm_fault.json
+            run.json
+            veto.json
