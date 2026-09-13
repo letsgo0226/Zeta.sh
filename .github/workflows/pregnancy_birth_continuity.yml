@@ -1,0 +1,57 @@
+name: Pregnancy Birth Continuity Research
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [pregnancy-birth-continuity-evolve]
+permissions:
+  contents: read
+concurrency:
+  group: pregnancy-birth-continuity-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify compact machine
+        run: |
+          test "$(wc -c < Pregnancy_Birth_Continuity_TM.sh)" -lt 2048
+          bash -n Pregnancy_Birth_Continuity_TM.sh
+          bash Pregnancy_Birth_Continuity_TM.sh self > self.json
+          bash Pregnancy_Birth_Continuity_TM.sh omega > omega.json
+          bash Pregnancy_Birth_Continuity_TM.sh finite 4 > finite.json
+          bash Pregnancy_Birth_Continuity_TM.sh assess 11111111 111111 1111 1111 1111 > ideal.json
+          bash Pregnancy_Birth_Continuity_TM.sh assess 10111111 111110 1110 1111 1110 > stress.json
+          python3 - <<'PY'
+          import json
+          j=lambda f:json.load(open(f))
+          assert j('self.json')['SELF_SOLVED'] is True
+          o=j('omega.json'); assert o['RESIDUAL']==0 and o['ATTAINED_BY_FINITE_EXECUTION'] is False and o['REAL_WORLD_VERIFIED'] is False
+          f=j('finite.json'); assert (f['EPS_NUM'],f['EPS_DEN'])==(1,16)
+          i=j('ideal.json'); assert i['RESIDUAL']==0 and i['ZERO_RESIDUAL'] is True and i['PAIN_FREE_VERIFIED'] is False and i['ZERO_INJURY_VERIFIED'] is False
+          s=j('stress.json'); assert s['RESIDUAL']==4 and s['ZERO_RESIDUAL'] is False
+          PY
+      - name: Reproductive continuity interface
+        run: |
+          test -f Contraceptive_Safety_TM.sh
+          bash Contraceptive_Safety_TM.sh assess dual 11111111 11111111 1111 > contraceptive.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('contraceptive.json'))
+          assert x['RESIDUAL']==0 and x['REAL_WORLD_VERIFIED'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pregnancy-birth-continuity-results
+          path: |
+            self.json
+            omega.json
+            finite.json
+            ideal.json
+            stress.json
+            contraceptive.json
