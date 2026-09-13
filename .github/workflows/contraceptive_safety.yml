@@ -1,0 +1,84 @@
+name: Contraceptive Safety Continuity Research
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [contraceptive-safety-evolve]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compact machine
+        run: |
+          set -euo pipefail
+          test "$(wc -c < Contraceptive_Safety_TM.sh)" -lt 2048
+          bash -n Contraceptive_Safety_TM.sh
+          chmod +x Contraceptive_Safety_TM.sh
+      - name: Verify self and symbolic boundary
+        run: |
+          set -euo pipefail
+          ./Contraceptive_Safety_TM.sh self > self.json
+          ./Contraceptive_Safety_TM.sh omega > omega.json
+          python3 - <<'PY'
+          import json
+          s=json.load(open('self.json')); o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert o['RESIDUAL']==0 and o['SOLUTION_ENTROPY']==0
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['EFFICACY_100_VERIFIED'] is False
+          assert o['ZERO_SIDE_EFFECTS_VERIFIED'] is False
+          assert o['REVERSIBILITY_VERIFIED'] is False
+          assert o['REAL_WORLD_VERIFIED'] is False
+          assert o['FORMAL_MODEL_ONLY'] is True and o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - name: Verify exact finite path
+        run: |
+          set -euo pipefail
+          ./Contraceptive_Safety_TM.sh finite 4 > finite.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('finite.json'))
+          assert x['EPS_NUM']==1 and x['EPS_DEN']==16
+          PY
+      - name: Verify female male dual and stress states
+        run: |
+          set -euo pipefail
+          ./Contraceptive_Safety_TM.sh assess female 11111111 00000000 1111 > female.json
+          ./Contraceptive_Safety_TM.sh assess male 00000000 11111111 1111 > male.json
+          ./Contraceptive_Safety_TM.sh assess dual 11111111 11111111 1111 > dual.json
+          ./Contraceptive_Safety_TM.sh assess dual 10111111 11101111 1110 > stress.json
+          python3 - <<'PY'
+          import json
+          f=json.load(open('female.json')); m=json.load(open('male.json')); d=json.load(open('dual.json')); s=json.load(open('stress.json'))
+          assert f['RESIDUAL']==0 and f['MALE'] is None
+          assert m['RESIDUAL']==0 and m['FEMALE'] is None
+          assert d['RESIDUAL']==0 and d['ZERO_RESIDUAL'] is True
+          assert s['RESIDUAL']==3 and s['ZERO_RESIDUAL'] is False
+          for x in (f,m,d,s):
+              assert x['REAL_WORLD_VERIFIED'] is False
+              assert x['EFFICACY_100_VERIFIED'] is False
+              assert x['ZERO_SIDE_EFFECTS_VERIFIED'] is False
+              assert x['PERSONALIZED_MEDICAL_CLAIM'] is False
+              assert x['OPEN'] is True and x['FINAL'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contraceptive-safety-results
+          path: |
+            self.json
+            omega.json
+            finite.json
+            female.json
+            male.json
+            dual.json
+            stress.json
