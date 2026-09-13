@@ -1,0 +1,69 @@
+name: Privation Theodicy Research
+on:
+  push:
+    paths:
+      - 'Privation_Theodicy_TM.py'
+      - 'PRIVATION_THEODICY_MODEL.md'
+      - '.github/workflows/privation_theodicy.yml'
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  repository_dispatch:
+    types: [privation-theodicy-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Compile
+        run: python -m py_compile Privation_Theodicy_TM.py
+      - name: Logic distinction
+        run: |
+          python Privation_Theodicy_TM.py logic > logic.json
+          python - <<'PY'
+          import json
+          x=json.load(open('logic.json'))
+          assert x['Q1_EQUALS_Q2'] is False
+          assert x['PRIVATION_THEORY_PARTIAL_ONLY'] is True
+          PY
+      - name: Innocent suffering and non-compensation
+        run: |
+          python Privation_Theodicy_TM.py assess 10 6 8 0 5 > innocent.json
+          python Privation_Theodicy_TM.py assess 10 6 3 0 5 > bounded.json
+          python - <<'PY'
+          import json
+          a=json.load(open('innocent.json')); b=json.load(open('bounded.json'))
+          assert a['PRIVATION']==4.0
+          assert a['INNOCENT_SUFFERING'] is True
+          assert a['NON_COMPENSATION_VIOLATION'] is True
+          assert a['PRIVATION_ERASES_SUFFERING'] is False
+          assert a['THEODICY_RESOLVED'] is False
+          assert b['NON_COMPENSATION_VIOLATION'] is False
+          PY
+      - name: Omega boundary remains non-proof
+        run: |
+          python Privation_Theodicy_TM.py omega > omega.json
+          python - <<'PY'
+          import json
+          x=json.load(open('omega.json'))
+          assert x['BOUNDARY_BY_DEFINITION'] is True
+          assert x['ATTAINED_BY_FINITE_WORLD_MODEL'] is False
+          assert x['THEODICY_PROVED'] is False
+          assert x['GOD_EXISTS_PROVED'] is False
+          assert x['GOD_DOES_NOT_EXIST_PROVED'] is False
+          assert x['OPEN'] is True and x['FINAL'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: privation-theodicy-state
+          path: |
+            logic.json
+            innocent.json
+            bounded.json
+            omega.json
