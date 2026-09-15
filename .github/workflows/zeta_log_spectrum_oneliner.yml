@@ -14,6 +14,10 @@ jobs:
         run: |
           test "$(wc -l < Zeta_Log_Spectrum_OneLiner.sh)" -eq 1
           test "$(wc -c < Zeta_Log_Spectrum_OneLiner.sh)" -lt 2048
+      - name: Verify exact quine fixed point
+        run: |
+          sh Zeta_Log_Spectrum_OneLiner.sh quine > /tmp/quine.sh
+          cmp -s Zeta_Log_Spectrum_OneLiner.sh /tmp/quine.sh
       - name: Run default and theorem branches
         run: |
           sh Zeta_Log_Spectrum_OneLiner.sh > /tmp/a.json
@@ -26,8 +30,9 @@ jobs:
           python3 - <<'PY'
           import json,pathlib
           A=[json.load(open('/tmp/'+x+'.json')) for x in 'abcde']
-          assert A[0]['mode']=='zeta-log-spectrum-1L' and A[0]['carrier']=='zlib+base64'
-          assert A[0]['formal_log_coordinate'] if 'formal_log_coordinate' in A[0] else A[0]['log_n']=='-s (formal,n>=2)'
+          assert A[0]['mode']=='zeta-log-spectrum-quine-1L' and A[0]['carrier']=='zlib+base64'
+          assert A[0]['log_n']=='-s (formal,n>=2)' and A[0]['quine_source_exact'] is True
+          assert A[0]['quine_file_read'] is False
           assert A[1]['zeta']['exact']==[-1,2]
           assert A[2]['zeta']['exact']==[0,0]
           assert A[3]['zeta']['k']=='pole' and A[3]['zeta']['finite'] is False
