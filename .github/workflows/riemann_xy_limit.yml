@@ -1,0 +1,51 @@
+name: Riemann XY Limit State
+on:
+  push:
+    paths:
+      - 'Riemann_XY_Limit_OneLiner.sh'
+      - '.github/workflows/riemann_xy_limit.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [riemann-xy-limit]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install -q mpmath
+      - name: One-line and size checks
+        run: |
+          test "$(wc -l < Riemann_XY_Limit_OneLiner.sh)" -eq 1
+          test "$(wc -c < Riemann_XY_Limit_OneLiner.sh)" -lt 2048
+      - name: Compute finite state and symbolic limits
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DPS: '60'
+          DT: '.5'
+          T: '15'
+        run: |
+          sh Riemann_XY_Limit_OneLiner.sh > state.json
+          python - <<'PY'
+          import json
+          x=json.load(open('riemann_xy_limit.json')); L=x['limit']
+          assert x['repos']>0 and x['blobs']>0 and x['dps']>=60
+          assert len(x['xy'])==61
+          assert L['precision']=='zeta'
+          assert L['sampling']=='graph(zeta)'
+          assert L['height']=='exhaustion'
+          assert L['single_point'] is False
+          assert L['graph_dim_R']==2 and L['ambient_dim_R']==4
+          assert L['boundary'] is True and L['attained'] is False
+          assert L['open'] is True and L['final'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riemann-xy-limit-state
+          path: |
+            riemann_xy_limit.json
+            state.json
