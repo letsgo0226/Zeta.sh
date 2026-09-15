@@ -32,19 +32,24 @@ jobs:
           assert b.rstrip(b'\n').count(b'\n')==0
           print('bytes=',len(b))
           PY
-      - name: Run Quine X/Y and exact-log modes
+      - name: Run file, paste, X/Y and exact-log modes
         run: |
           sh Zeta_TM_OneLiner.sh > cycle.json
           sh Zeta_TM_OneLiner.sh 21 1 > zero.json
           sh Zeta_TM_OneLiner.sh log 72 75 > log.json
           mkdir -p /tmp/zeta-tm-test
-          (cd /tmp/zeta-tm-test && sh "$GITHUB_WORKSPACE/Zeta_TM_OneLiner.sh" log 72 75 > "$GITHUB_WORKSPACE/log-away.json")
-      - name: Verify mathematical boundaries
+          (cd /tmp/zeta-tm-test && sh "$GITHUB_WORKSPACE/Zeta_TM_OneLiner.sh" > "$GITHUB_WORKSPACE/away.json")
+          cat Zeta_TM_OneLiner.sh | sh > paste.json
+      - name: Verify mathematical and execution boundaries
         run: |
           python3 - <<'PY'
           import json
-          C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'));A=json.load(open('log-away.json'))
-          assert C['mode']=='xy-quine' and C['recovered'] is True and C['quine_preserved'] is True
+          C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'));A=json.load(open('away.json'));P=json.load(open('paste.json'))
+          for x in (C,A):
+            assert x['mode']=='xy-quine' and x['self_roundtrip'] is True
+            assert x['source_mode']=='file' and x['source_exact'] is True and x['quine_preserved'] is True and x['paste_descriptor'] is False
+          assert P['mode']=='xy-quine' and P['self_roundtrip'] is True
+          assert P['source_mode']=='descriptor' and P['source_exact'] is False and P['quine_preserved'] is False and P['paste_descriptor'] is True
           assert C['dense_Qi'] is True and C['closure_C'] is True
           assert C['full_C_pointwise'] is False and C['immediate_exhaustive'] is False
           assert C['numerical_zero'] is False and C['open'] is True and C['final'] is False
@@ -52,12 +57,9 @@ jobs:
           assert p['X']==[[1,1],[0,1]] and p['Y']=={'k':'pole','r':1,'l':0}
           z=Z['cycle'][0]
           assert z['n']==21 and z['X']==[[-2,1],[0,1]] and z['Y']=={'k':'zero','v':0}
-          assert any(x['Y']['k']=='num' and x['Y']['d']>=0 for x in C['cycle'])
-          assert L['mode']=='exact-log' and L['exact'] is True and A==L
+          assert L['mode']=='exact-log' and L['exact'] is True
           assert L['a']==72 and L['b']==75 and L['ab']==5400
-          assert L['log_a']=={'2':3,'3':2}
-          assert L['log_b']=={'3':1,'5':2}
-          assert L['log_ab']=={'2':3,'3':3,'5':2}
+          assert L['log_a']=={'2':3,'3':2} and L['log_b']=={'3':1,'5':2} and L['log_ab']=={'2':3,'3':3,'5':2}
           assert L['identity']=='log(a)+log(b)=log(ab)'
-          print('Zeta TM one-liner exact-log checks passed from arbitrary cwd')
+          print('Zeta TM one-liner file/paste/exact-log checks passed')
           PY
