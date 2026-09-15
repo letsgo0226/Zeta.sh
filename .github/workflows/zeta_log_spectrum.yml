@@ -1,0 +1,53 @@
+name: Zeta Log Spectrum
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Zeta_Log_Spectrum_TM.sh'
+      - 'ZETA_LOG_SPECTRUM_MODEL.md'
+      - '.github/workflows/zeta_log_spectrum.yml'
+  pull_request:
+    paths:
+      - 'Zeta_Log_Spectrum_TM.sh'
+      - 'ZETA_LOG_SPECTRUM_MODEL.md'
+      - '.github/workflows/zeta_log_spectrum.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  log-spectrum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run real and complex log-spectrum modes
+        run: |
+          sh Zeta_Log_Spectrum_TM.sh --s-real 2 --s-imag 0 --count 6 > real.json
+          sh Zeta_Log_Spectrum_TM.sh --s-real 1 --s-imag 1/2 --count 4 > complex.json
+          sh Zeta_Log_Spectrum_TM.sh --s-real -2 --s-imag 0 --count 4 > trivial.json
+          sh Zeta_Log_Spectrum_TM.sh --s-real 1 --s-imag 0 --count 4 > pole.json
+      - name: Verify logarithmic and zeta boundaries
+        run: |
+          python3 - <<'PY'
+          import json,math
+          R=json.load(open('real.json'));C=json.load(open('complex.json'));T=json.load(open('trivial.json'));P=json.load(open('pole.json'))
+          assert R['mode']=='zeta-log-spectrum' and R['s_exact']=={'re':[2,1],'im':[0,1]}
+          assert R['base_1_term_exact']==1 and R['base_1_log_defined'] is False
+          assert R['dirichlet_series_converges'] is True and R['principal_log_equality_guaranteed'] is True
+          assert R['formal_coordinate_exact'] is True and R['log_zeta_equals_sum_logs'] is False
+          assert all(x['formal_log_base_n']==[[-2,1],[0,1]] for x in R['terms'])
+          assert max(abs(v) for x in R['terms'] for v in x['principal_minus_formal_approx']) < 1e-12
+          assert R['zeta']['kind']=='special_value' and R['zeta']['exact_symbolic']=='pi^2/6'
+          assert abs(R['zeta']['approx'][0]-math.pi**2/6) < 1e-10
+          assert C['dirichlet_series_converges'] is False and C['principal_log_equality_guaranteed'] is False
+          assert C['analytic_continuation_required_outside_Re_gt_1'] is True
+          assert T['zeta']['kind']=='trivial_zero' and T['zeta']['exact']==[0,0]
+          assert P['zeta']['kind']=='simple_pole' and P['zeta']['finite'] is False
+          assert R['open'] is True and R['final'] is False
+          print('Zeta logarithmic spectrum checks passed')
+          PY
