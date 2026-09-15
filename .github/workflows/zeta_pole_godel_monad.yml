@@ -1,0 +1,31 @@
+name: Zeta Pole Godel Monad
+on:
+  push:
+    paths:
+      - 'Zeta_Pole_Godel_Monad_TM.py'
+      - '.github/workflows/zeta_pole_godel_monad.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Verify exact channel and formal boundaries
+        run: |
+          python3 Zeta_Pole_Godel_Monad_TM.py > out.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('out.json'))
+          assert x['H(1)']==1.0
+          assert x['log(H(1))']==0.0
+          assert x['prime_seed']==2
+          assert x['exact_roundtrip'] is True
+          assert x['zeta_1_equals_2'] is False
+          assert x['rh_proved'] is False
+          assert x['attained_by_finite_execution'] is False
+          assert x['open'] is True and x['final'] is False
+          print('VERIFIED',x['model'])
+          PY
