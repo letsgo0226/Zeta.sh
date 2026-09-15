@@ -1,0 +1,43 @@
+name: Riemann XY Public Corpus
+on:
+  push:
+    paths:
+      - 'Riemann_XY_Corpus_OneLiner.sh'
+      - '.github/workflows/riemann_xy_corpus.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install -q mpmath
+      - name: Verify one-liner and exact corpus enumeration
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: letsgo0226
+          DPS: '60'
+        run: |
+          test "$(wc -c < Riemann_XY_Corpus_OneLiner.sh)" -lt 2048
+          test "$(grep -c '^' Riemann_XY_Corpus_OneLiner.sh)" -eq 1
+          bash Riemann_XY_Corpus_OneLiner.sh > run.json
+          python - <<'PY'
+          import json, pathlib
+          r=json.load(open('run.json')); d=json.load(open('riemann_xy.json'))
+          assert r['repos']>0 and r['blobs']>0 and r['dps']>=60
+          assert d['repos']==r['repos'] and d['blobs']==r['blobs']
+          assert d['seed'][1]==1000003 and len(d['xyz'])==61
+          s=pathlib.Path('riemann_xy.svg').read_text()
+          assert '<svg' in s and '>X<' in s and 'Y=zeta(s)' in s
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riemann-xy-public-corpus
+          path: |
+            run.json
+            riemann_xy.json
+            riemann_xy.svg
