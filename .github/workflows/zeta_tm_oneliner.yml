@@ -32,27 +32,30 @@ jobs:
           assert b.rstrip(b'\n').count(b'\n')==0
           print('bytes=',len(b))
           PY
-      - name: Run file, paste, X/Y and exact-log modes
+      - name: Run decode-self, paste, X/Y and exact-log modes
         run: |
-          sh Zeta_TM_OneLiner.sh > cycle.json
+          sh Zeta_TM_OneLiner.sh > self.json
+          sh Zeta_TM_OneLiner.sh 0 8 > cycle.json
           sh Zeta_TM_OneLiner.sh 21 1 > zero.json
           sh Zeta_TM_OneLiner.sh log 72 75 > log.json
           mkdir -p /tmp/zeta-tm-test
           (cd /tmp/zeta-tm-test && sh "$GITHUB_WORKSPACE/Zeta_TM_OneLiner.sh" > "$GITHUB_WORKSPACE/away.json")
           cat Zeta_TM_OneLiner.sh | sh > paste.json
-      - name: Verify mathematical and execution boundaries
+      - name: Verify exact self round-trip and mathematical boundaries
         run: |
           python3 - <<'PY'
           import json
-          C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'));A=json.load(open('away.json'));P=json.load(open('paste.json'))
-          for x in (C,A):
-            assert x['mode']=='xy-quine' and x['self_roundtrip'] is True
-            assert x['source_mode']=='file' and x['source_exact'] is True and x['quine_preserved'] is True and x['paste_descriptor'] is False
-          assert P['mode']=='xy-quine' and P['self_roundtrip'] is True
-          assert P['source_mode']=='descriptor' and P['source_exact'] is False and P['quine_preserved'] is False and P['paste_descriptor'] is True
-          assert C['dense_Qi'] is True and C['closure_C'] is True
-          assert C['full_C_pointwise'] is False and C['immediate_exhaustive'] is False
-          assert C['numerical_zero'] is False and C['open'] is True and C['final'] is False
+          from pathlib import Path
+          S=json.load(open('self.json'));A=json.load(open('away.json'));P=json.load(open('paste.json'));C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'))
+          src=Path('Zeta_TM_OneLiner.sh').read_bytes()
+          for x in (S,A):
+            assert x['mode']=='decode-self' and x['byte_roundtrip'] is True and x['source_exact'] is True
+            assert x['decoded'].encode()==src and x['log_identity']==0
+            assert x['semantic_complete'] is False and x['open'] is True and x['final'] is False
+          assert P['mode']=='decode-self' and P['byte_roundtrip'] is True and P['source_exact'] is False
+          assert P['decoded']=='Zeta_TM_OneLiner.sh|PASTE' and P['log_identity']==0
+          assert C['mode']=='xy' and C['dense'] is True and C['closure_C'] is True and C['full_C'] is False
+          assert C['open'] is True and C['final'] is False
           p=next(x for x in C['cycle'] if x['n']==1)
           assert p['X']==[[1,1],[0,1]] and p['Y']=={'k':'pole','r':1,'l':0}
           z=Z['cycle'][0]
@@ -60,6 +63,5 @@ jobs:
           assert L['mode']=='exact-log' and L['exact'] is True
           assert L['a']==72 and L['b']==75 and L['ab']==5400
           assert L['log_a']=={'2':3,'3':2} and L['log_b']=={'3':1,'5':2} and L['log_ab']=={'2':3,'3':3,'5':2}
-          assert L['identity']=='log(a)+log(b)=log(ab)'
-          print('Zeta TM one-liner file/paste/exact-log checks passed')
+          print('decode-self default and Zeta TM boundary checks passed')
           PY
