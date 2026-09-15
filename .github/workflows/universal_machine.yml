@@ -1,0 +1,55 @@
+name: Universal Machine Offline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Universal_Machine.sh'
+      - 'UNIVERSAL_MACHINE_MODEL.md'
+      - '.github/workflows/universal_machine.yml'
+  pull_request:
+    paths:
+      - 'Universal_Machine.sh'
+      - 'UNIVERSAL_MACHINE_MODEL.md'
+      - '.github/workflows/universal_machine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  universal-machine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run intrinsic modes
+        run: |
+          sh Universal_Machine.sh self > self.json
+          sh Universal_Machine.sh point > point.json
+          sh Universal_Machine.sh pole > pole.json
+          sh Universal_Machine.sh zero > zero.json
+          sh Universal_Machine.sh omega > omega.json
+      - name: Run arbitrary finite TM description
+        run: |
+          cat > machine.json <<'JSON'
+          {"start":"q0","halt":["qh"],"blank":"_","delta":{"q0|1":["q0","0","R"],"q0|_":["qh","_","N"]}}
+          JSON
+          sh Universal_Machine.sh simulate --machine machine.json --input 111 > simulate.json
+      - name: Verify model boundaries
+        run: |
+          python3 - <<'PY'
+          import json
+          S=json.load(open('self.json'));P=json.load(open('point.json'));L=json.load(open('pole.json'));Z=json.load(open('zero.json'));U=json.load(open('simulate.json'));O=json.load(open('omega.json'))
+          assert S['SELF_SOLVED'] is True and S['OFFLINE'] is True and S['NETWORK_REQUIRED'] is False and S['THIRD_PARTY_REQUIRED'] is False
+          assert P['PROGRAM_EQUALS_ZETA'] is False and P['ERROR_BOUND_RIGOROUS'] is False and P['CONVERGENCE_DELTA'] < 1e-8
+          assert L['ZETA_AT_1']=='simple_pole' and L['RESIDUE_AT_1']==1 and L['NORMALIZED_LIMIT_AT_1']==1 and L['LOG_NORMALIZED_LIMIT_AT_1']==0
+          assert L['FORMAL_ZERO_BY_THEOREM'] is True and L['NUMERICAL_ZERO_ERROR'] is False
+          assert Z['SCHWARZSCHILD']['R_S_MINUS_2M']==0 and Z['STIRLING']['FINITE_TRUNCATION_ALONE_EXACT'] is False
+          assert Z['FORMAL_ZERO_ERROR'] is True and Z['NUMERICAL_ZERO_ERROR'] is False and Z['RIEMANN_HYPOTHESIS_PROVED'] is False
+          assert U['HALTED'] is True and U['TAPE']=='000' and U['UNIVERSAL_INTERPRETER_FOR_FINITE_DETERMINISTIC_SINGLE_TAPE_TM'] is True
+          assert O['UNIVERSAL_INTERPRETER'] is True and O['ATTAINED_BY_FINITE_EXECUTION'] is False and O['OPEN'] is True and O['FINAL'] is False
+          print('Universal_Machine.sh checks passed')
+          PY
