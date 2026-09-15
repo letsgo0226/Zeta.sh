@@ -1,0 +1,69 @@
+name: Physiological Restoration Equivalence Research
+on:
+  push:
+    paths:
+      - 'Physiological_Restoration_Equivalence_TM.py'
+      - 'PHYSIOLOGICAL_RESTORATION_EQUIVALENCE_MODEL.md'
+      - '.github/workflows/physiological_restoration_equivalence.yml'
+  pull_request:
+    paths:
+      - 'Physiological_Restoration_Equivalence_TM.py'
+      - 'PHYSIOLOGICAL_RESTORATION_EQUIVALENCE_MODEL.md'
+      - '.github/workflows/physiological_restoration_equivalence.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [physiological-restoration-equivalence-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Static and self checks
+        run: |
+          python -m py_compile Physiological_Restoration_Equivalence_TM.py
+          python Physiological_Restoration_Equivalence_TM.py self > self.json
+          python Physiological_Restoration_Equivalence_TM.py omega > omega.json
+          python - <<'PY'
+          import json
+          s=json.load(open('self.json')); o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert s['NO_MEDICAL_ADVICE'] is True
+          assert o['ALERTNESS_ONLY_IS_NOT_RESTORATION'] is True
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['FULL_SLEEP_REPLACEMENT_VERIFIED'] is False
+          assert o['REAL_WORLD_VERIFIED'] is False
+          assert o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - name: Multisystem equivalence checks
+        run: |
+          R='1,1,1,1,1,1,1,1,1,1'
+          C='.99,.98,.99,.98,.99,.99,.98,.99,.99,.98'
+          X='.3,.4,.5,.4,.6,.5,.4,.5,.6,.3'
+          python Physiological_Restoration_Equivalence_TM.py assess --reference "$R" --candidate "$C" --harm .01 --uncertainty .02 --alertness 1 --cycles 60 --min-cycles 30 --epsilon .05 > nominal.json
+          python Physiological_Restoration_Equivalence_TM.py assess --reference "$R" --candidate "$X" --harm .2 --uncertainty .4 --alertness 1 --cycles 2 --min-cycles 30 --epsilon .05 > stress.json
+          python Physiological_Restoration_Equivalence_TM.py compare --reference "$R" --a "$C" --b "$X" --a-harm .01 --a-uncertainty .02 --b-harm .2 --b-uncertainty .4 > compare.json
+          python - <<'PY'
+          import json
+          n=json.load(open('nominal.json')); s=json.load(open('stress.json')); c=json.load(open('compare.json'))
+          assert n['FORMAL_EQUIVALENCE_GATE'] is True
+          assert n['ALERTNESS_COUNTS_AS_RESTORATION'] is False
+          assert n['FULL_SLEEP_REPLACEMENT_VERIFIED'] is False
+          assert n['NO_DOSING_OR_TREATMENT_ADVICE'] is True
+          assert s['FORMAL_EQUIVALENCE_GATE'] is False
+          assert c['LOWER_FORMAL_RESIDUAL']=='A'
+          assert c['CLINICAL_SUPERIORITY_VERIFIED'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: physiological-restoration-equivalence-state
+          path: |
+            self.json
+            omega.json
+            nominal.json
+            stress.json
+            compare.json
