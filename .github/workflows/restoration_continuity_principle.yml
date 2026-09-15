@@ -1,0 +1,75 @@
+name: Restoration Continuity Principle Research
+on:
+  push:
+    paths:
+      - 'Restoration_Continuity_Principle_TM.py'
+      - 'RESTORATION_CONTINUITY_PRINCIPLE_MODEL.md'
+      - '.github/workflows/restoration_continuity_principle.yml'
+  pull_request:
+    paths:
+      - 'Restoration_Continuity_Principle_TM.py'
+      - 'RESTORATION_CONTINUITY_PRINCIPLE_MODEL.md'
+      - '.github/workflows/restoration_continuity_principle.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [restoration-continuity-principle-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Static and self checks
+        run: |
+          python -m py_compile Restoration_Continuity_Principle_TM.py
+          python Restoration_Continuity_Principle_TM.py self > self.json
+          python Restoration_Continuity_Principle_TM.py omega > omega.json
+          python Restoration_Continuity_Principle_TM.py counterexample > counterexample.json
+          python - <<'PY'
+          import json
+          s=json.load(open('self.json')); o=json.load(open('omega.json')); c=json.load(open('counterexample.json'))
+          assert s['SELF_SOLVED'] is True
+          assert s['NO_MEDICAL_ADVICE'] is True
+          assert o['SUBSTITUTION_IS_FUNCTIONAL_RESTORATION_PLUS_SAFETY_PLUS_VERIFICATION'] is True
+          assert o['APPEARANCE_COUNTS_AS_RESTORATION'] is False
+          assert o['SOURCE_ACCESSIBILITY_COUNTS_AS_FUNCTIONAL_RESTORATION'] is False
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['REAL_WORLD_VERIFIED'] is False
+          assert c['APPEARANCE_ENTAILS_RESTORATION'] is False
+          assert c['SOURCE_ACCESSIBILITY_ENTAILS_FUNCTIONAL_RESTORATION'] is False
+          PY
+      - name: Bridge and substitution checks
+        run: |
+          R='1,1,1,1,1,1,1'
+          C='.99,.99,.98,.99,.99,.99,.98'
+          X='1,1,.2,.9,.2,.4,.1'
+          python Restoration_Continuity_Principle_TM.py assess --reference "$R" --candidate "$C" --harm .01 --uncertainty .02 --verification .98 --appearance 1 --cycles 60 --min-cycles 30 --epsilon .05 --min-verification .95 > pass.json
+          python Restoration_Continuity_Principle_TM.py assess --reference "$R" --candidate "$X" --harm .4 --uncertainty .5 --verification .2 --appearance 1 --cycles 60 --min-cycles 30 --epsilon .05 --min-verification .95 > fail.json
+          python Restoration_Continuity_Principle_TM.py bridge --dimension 4 --source-dimension 1 --light 1 --due-light 1 --suffering 0 --reference "$R" --candidate "$C" --harm .01 --uncertainty .02 --verification .98 --appearance 1 --cycles 60 --min-cycles 30 --epsilon .05 --min-verification .95 > bridge.json
+          python - <<'PY'
+          import json
+          p=json.load(open('pass.json')); f=json.load(open('fail.json')); b=json.load(open('bridge.json'))
+          assert p['FORMAL_SUBSTITUTION_GATE'] is True
+          assert p['APPEARANCE_COUNTS_AS_RESTORATION'] is False
+          assert f['FORMAL_SUBSTITUTION_GATE'] is False
+          assert b['DIMENSIONALLY_DIFFERENT'] is True
+          assert b['DIFFERENCE_EQUALS_SEPARATION_FROM_SOURCE'] is False
+          assert b['SOURCE_ACCESSIBILITY_COUNTS_AS_FUNCTIONAL_RESTORATION'] is False
+          assert b['CONTINUITY_ALONE_VERIFIES_SUBSTITUTION'] is False
+          assert b['PRIVATION_EQUALS_SUFFERING'] is False
+          assert b['FORMAL_SUBSTITUTION_GATE'] is True
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: restoration-continuity-principle-state
+          path: |
+            self.json
+            omega.json
+            counterexample.json
+            pass.json
+            fail.json
+            bridge.json
