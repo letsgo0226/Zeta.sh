@@ -1,0 +1,55 @@
+name: Riemann Quine Offline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Riemann_Quine_Offline_TM.py'
+      - 'RIEMANN_QUINE_OFFLINE_MODEL.md'
+      - '.github/workflows/riemann_quine_offline.yml'
+  pull_request:
+    paths:
+      - 'Riemann_Quine_Offline_TM.py'
+      - 'RIEMANN_QUINE_OFFLINE_MODEL.md'
+      - '.github/workflows/riemann_quine_offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run offline modes
+        run: |
+          python3 Riemann_Quine_Offline_TM.py self > self.json
+          python3 Riemann_Quine_Offline_TM.py point > point.json
+          python3 Riemann_Quine_Offline_TM.py quine > quine.json
+          python3 Riemann_Quine_Offline_TM.py omega > omega.json
+      - name: Verify boundaries and standard-library imports
+        run: |
+          python3 - <<'PY'
+          import ast,json,pathlib
+          p=pathlib.Path('Riemann_Quine_Offline_TM.py')
+          tree=ast.parse(p.read_text())
+          allowed={'argparse','json','sys','pathlib'}
+          imports=set()
+          for n in ast.walk(tree):
+              if isinstance(n,ast.Import): imports.update(a.name.split('.')[0] for a in n.names)
+              elif isinstance(n,ast.ImportFrom) and n.module: imports.add(n.module.split('.')[0])
+          assert imports <= allowed, (imports,allowed)
+          S=json.load(open('self.json')); P=json.load(open('point.json')); Q=json.load(open('quine.json')); O=json.load(open('omega.json'))
+          assert S['SELF_SOLVED'] is True
+          assert S['OFFLINE'] is True and S['NETWORK_REQUIRED'] is False and S['THIRD_PARTY_REQUIRED'] is False
+          assert P['Y_IS_ZETA_APPROX_OF_X'] is True and P['FINITE_APPROXIMATION'] is True
+          assert P['ERROR_BOUND_RIGOROUS'] is False and P['CONVERGENCE_DELTA_ESTIMATE'] < 1e-8
+          assert Q['SOURCE_RECOVERED'] is True and Q['PROGRAM_EQUALS_ZETA_FUNCTION'] is False
+          assert O['EXACT_ZETA_VALUE_ATTAINED_BY_FINITE_FLOAT_EXECUTION'] is False
+          assert O['ATTAINED_BY_FINITE_EXECUTION'] is False and O['OPEN'] is True and O['FINAL'] is False
+          print('offline Riemann-Quine checks passed')
+          PY
