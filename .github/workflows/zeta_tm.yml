@@ -6,11 +6,13 @@ on:
     paths:
       - 'Zeta_TM.sh'
       - 'ZETA_TM_MODEL.md'
+      - 'GODEL_NEWTON_DENSE_MODE.md'
       - '.github/workflows/zeta_tm.yml'
   pull_request:
     paths:
       - 'Zeta_TM.sh'
       - 'ZETA_TM_MODEL.md'
+      - 'GODEL_NEWTON_DENSE_MODE.md'
       - '.github/workflows/zeta_tm.yml'
 
 permissions:
@@ -39,6 +41,8 @@ jobs:
           sh Zeta_TM.sh trace --machine machine.json --input 111 --terms 32 > trace.json
           sh Zeta_TM.sh xy-cycle --start 0 --count 6 --terms 32 > xy.json
           sh Zeta_TM.sh xy-cycle --start 21 --count 1 --terms 16 > trivial.json
+          sh Zeta_TM.sh newton --index 0 --terms 32 --max-steps 20 --tolerance 1e-8 > newton.json
+          sh Zeta_TM.sh newton --index 21 --terms 16 > newton_trivial.json
           sh Zeta_TM.sh pole --terms 32 > pole.json
           sh Zeta_TM.sh zero > zero.json
           sh Zeta_TM.sh omega > omega.json
@@ -48,7 +52,8 @@ jobs:
           import json
           S=json.load(open('self.json'));Q=json.load(open('quine.json'));P=json.load(open('point.json'))
           R=json.load(open('run.json'));T=json.load(open('trace.json'));X=json.load(open('xy.json'))
-          V=json.load(open('trivial.json'));L=json.load(open('pole.json'));Z=json.load(open('zero.json'));O=json.load(open('omega.json'))
+          V=json.load(open('trivial.json'));N=json.load(open('newton.json'));NT=json.load(open('newton_trivial.json'))
+          L=json.load(open('pole.json'));Z=json.load(open('zero.json'));O=json.load(open('omega.json'))
           assert S['SELF_SOLVED'] is True and S['OFFLINE'] is True and S['NETWORK_REQUIRED'] is False
           assert Q['SOURCE_RECOVERED'] is True and Q['FILE_REFLECTIVE_QUINE'] is True and Q['CLASSICAL_NO_INPUT_QUINE'] is False
           assert P['SELF_SPECTRAL']['X'][0]==0.5 and P['SELF_SPECTRAL']['ERROR_BOUND_RIGOROUS'] is False
@@ -69,6 +74,13 @@ jobs:
           assert all(r['QUINE']['SELF_INDEX']==S['SELF_INDEX'] for r in X['CYCLE'])
           assert V['CYCLE'][0]['X']['RE']==[-2,1] and V['CYCLE'][0]['X']['IM']==[0,1]
           assert V['CYCLE'][0]['Y']['KIND']=='trivial_zero' and V['CYCLE'][0]['Y']['EXACT']==[0,0]
+          assert N['MODE']=='newton' and N['INDEX']==0 and N['CONVERGED'] is True
+          assert N['DENSE_GAUSSIAN_RATIONAL_START_SET'] is True and N['DENSE_CLOSURE_IS_COMPLEX_PLANE'] is True
+          assert N['GLOBAL_CONVERGENCE_GUARANTEED'] is False and N['ERROR_BOUND_RIGOROUS'] is False
+          assert N['RIEMANN_HYPOTHESIS_PROVED'] is False and N['PROGRAM_EQUALS_ZETA'] is False
+          assert N['RESIDUAL'] < 1e-8 and abs(N['ROOT_APPROX'][0]+2)<1e-4 and abs(N['ROOT_APPROX'][1])<1e-4
+          assert NT['CONVERGED'] is True and NT['REASON']=='exact_trivial_zero'
+          assert NT['ROOT_EXACT']==[-2,0] and NT['RESIDUAL_EXACT']==0 and NT['ITERATIONS']==0
           assert L['ZETA_AT_1']=='simple_pole' and L['ZETA_1_FINITE'] is False and L['ZETA_1_EQUALS_ZERO'] is False
           assert L['RESIDUE_AT_1']==1 and L['NORMALIZED_LIMIT_AT_1']==1 and L['LOG_NORMALIZED_LIMIT_AT_1']==0
           assert L['FORMAL_RESIDUAL']==0 and L['NUMERICAL_ZERO_ERROR'] is False and 0<L['NUMERICAL_DISTANCE_TO_ONE']<1e-4
@@ -78,5 +90,5 @@ jobs:
           assert O['DENSE_GAUSSIAN_RATIONAL_ENUMERATION'] is True and O['FULL_COMPLEX_SPACE_POINTWISE_ENUMERATION'] is False
           assert O['LIMIT_EXISTS']=='not_assumed' and O['ATTAINED_BY_FINITE_EXECUTION'] is False
           assert O['OPEN'] is True and O['FINAL'] is False and O['PROGRAM_EQUALS_ZETA'] is False
-          print('Zeta_TM Quine X/Y checks passed')
+          print('Zeta_TM Quine X/Y + Gödel-Newton checks passed')
           PY
