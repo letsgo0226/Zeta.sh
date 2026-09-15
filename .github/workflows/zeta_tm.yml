@@ -33,32 +33,50 @@ jobs:
       - name: Run Zeta TM modes
         run: |
           sh Zeta_TM.sh self > self.json
-          sh Zeta_TM.sh point > point.json
-          sh Zeta_TM.sh run --machine machine.json --input 111 > run.json
-          sh Zeta_TM.sh trace --machine machine.json --input 111 > trace.json
-          sh Zeta_TM.sh pole > pole.json
+          sh Zeta_TM.sh quine > quine.json
+          sh Zeta_TM.sh point --terms 32 > point.json
+          sh Zeta_TM.sh run --machine machine.json --input 111 --terms 32 > run.json
+          sh Zeta_TM.sh trace --machine machine.json --input 111 --terms 32 > trace.json
+          sh Zeta_TM.sh xy-cycle --start 0 --count 6 --terms 32 > xy.json
+          sh Zeta_TM.sh xy-cycle --start 21 --count 1 --terms 16 > trivial.json
+          sh Zeta_TM.sh pole --terms 32 > pole.json
           sh Zeta_TM.sh zero > zero.json
           sh Zeta_TM.sh omega > omega.json
       - name: Verify computation and research boundaries
         run: |
           python3 - <<'PY'
           import json
-          S=json.load(open('self.json'));P=json.load(open('point.json'));R=json.load(open('run.json'))
-          T=json.load(open('trace.json'));L=json.load(open('pole.json'));Z=json.load(open('zero.json'));O=json.load(open('omega.json'))
+          S=json.load(open('self.json'));Q=json.load(open('quine.json'));P=json.load(open('point.json'))
+          R=json.load(open('run.json'));T=json.load(open('trace.json'));X=json.load(open('xy.json'))
+          V=json.load(open('trivial.json'));L=json.load(open('pole.json'));Z=json.load(open('zero.json'));O=json.load(open('omega.json'))
           assert S['SELF_SOLVED'] is True and S['OFFLINE'] is True and S['NETWORK_REQUIRED'] is False
+          assert Q['SOURCE_RECOVERED'] is True and Q['FILE_REFLECTIVE_QUINE'] is True and Q['CLASSICAL_NO_INPUT_QUINE'] is False
           assert P['SELF_SPECTRAL']['X'][0]==0.5 and P['SELF_SPECTRAL']['ERROR_BOUND_RIGOROUS'] is False
           assert R['HALTED'] is True and R['REASON']=='halt_state' and R['TAPE']=='000' and R['STEPS']==4
           assert R['FINAL_CONFIGURATION']['CONFIG_CODE_EXACT'] is True and R['FINAL_CONFIGURATION']['CONFIG_RECOVERED'] is True
+          assert R['ZETA_TRACE_REPRESENTATION'] is True and R['ZETA_TRACE_EMBEDDING'] is False
           assert R['X_PROJECTION_INJECTIVE'] is False and R['PROGRAM_EQUALS_ZETA'] is False
-          assert T['ZETA_TRACE_EMBEDDING'] is True and len(T['TRACE'])==5
+          assert T['ZETA_TRACE_REPRESENTATION'] is True and len(T['TRACE'])==5
           assert all(x['CONFIG_RECOVERED'] is True for x in T['TRACE'])
           assert all(x['SPECTRAL']['FINITE_APPROXIMATION'] is True for x in T['TRACE'])
+          assert X['DENSE_GAUSSIAN_RATIONAL_ENUMERATION'] is True and X['DENSE_CLOSURE_IS_COMPLEX_PLANE'] is True
+          assert X['FULL_COMPLEX_SPACE_POINTWISE_ENUMERATION'] is False and X['IMMEDIATE_EXHAUSTIVE_TRAVERSAL'] is False
+          assert X['UNCOUNTABLE_CARDINALITY_BARRIER'] is True and X['FINITE_QUINE_GENERATOR_PRESENT'] is True
+          assert X['CYCLE'][0]['X']['RE']==[0,1] and X['CYCLE'][0]['X']['IM']==[0,1]
+          assert X['CYCLE'][1]['X']['RE']==[1,1] and X['CYCLE'][1]['X']['IM']==[0,1]
+          assert X['CYCLE'][1]['Y']['KIND']=='simple_pole' and X['CYCLE'][1]['Y']['LOG_NORMALIZED_LIMIT_AT_1']==0
+          assert all(r['QUINE']['QUINE_STATE_PRESERVED'] is True for r in X['CYCLE'])
+          assert all(r['QUINE']['SELF_INDEX']==S['SELF_INDEX'] for r in X['CYCLE'])
+          assert V['CYCLE'][0]['X']['RE']==[-2,1] and V['CYCLE'][0]['X']['IM']==[0,1]
+          assert V['CYCLE'][0]['Y']['KIND']=='trivial_zero' and V['CYCLE'][0]['Y']['EXACT']==[0,0]
           assert L['ZETA_AT_1']=='simple_pole' and L['ZETA_1_FINITE'] is False and L['ZETA_1_EQUALS_ZERO'] is False
           assert L['RESIDUE_AT_1']==1 and L['NORMALIZED_LIMIT_AT_1']==1 and L['LOG_NORMALIZED_LIMIT_AT_1']==0
           assert L['FORMAL_RESIDUAL']==0 and L['NUMERICAL_ZERO_ERROR'] is False and 0<L['NUMERICAL_DISTANCE_TO_ONE']<1e-4
           assert Z['SCHWARZSCHILD']['R_S_MINUS_2M']==0 and Z['STIRLING']['EXACT_REMAINDER_INCLUDED'] is True
           assert Z['FORMAL_ZERO_ERROR'] is True and Z['NUMERICAL_ZERO_ERROR'] is False and Z['RIEMANN_HYPOTHESIS_PROVED'] is False
+          assert O['ZETA_ANALYTIC_REPRESENTATION'] is True and O['ZETA_ANALYTIC_EMBEDDING'] is False
+          assert O['DENSE_GAUSSIAN_RATIONAL_ENUMERATION'] is True and O['FULL_COMPLEX_SPACE_POINTWISE_ENUMERATION'] is False
           assert O['LIMIT_EXISTS']=='not_assumed' and O['ATTAINED_BY_FINITE_EXECUTION'] is False
           assert O['OPEN'] is True and O['FINAL'] is False and O['PROGRAM_EQUALS_ZETA'] is False
-          print('Zeta_TM checks passed')
+          print('Zeta_TM Quine X/Y checks passed')
           PY
