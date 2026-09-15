@@ -37,11 +37,13 @@ jobs:
           sh Zeta_TM_OneLiner.sh > cycle.json
           sh Zeta_TM_OneLiner.sh 21 1 > zero.json
           sh Zeta_TM_OneLiner.sh log 72 75 > log.json
+          mkdir -p /tmp/zeta-tm-test
+          (cd /tmp/zeta-tm-test && sh "$GITHUB_WORKSPACE/Zeta_TM_OneLiner.sh" log 72 75 > "$GITHUB_WORKSPACE/log-away.json")
       - name: Verify mathematical boundaries
         run: |
           python3 - <<'PY'
           import json
-          C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'))
+          C=json.load(open('cycle.json'));Z=json.load(open('zero.json'));L=json.load(open('log.json'));A=json.load(open('log-away.json'))
           assert C['mode']=='xy-quine' and C['recovered'] is True and C['quine_preserved'] is True
           assert C['dense_Qi'] is True and C['closure_C'] is True
           assert C['full_C_pointwise'] is False and C['immediate_exhaustive'] is False
@@ -51,11 +53,11 @@ jobs:
           z=Z['cycle'][0]
           assert z['n']==21 and z['X']==[[-2,1],[0,1]] and z['Y']=={'k':'zero','v':0}
           assert any(x['Y']['k']=='num' and x['Y']['d']>=0 for x in C['cycle'])
-          assert L['mode']=='exact-log' and L['exact'] is True
+          assert L['mode']=='exact-log' and L['exact'] is True and A==L
           assert L['a']==72 and L['b']==75 and L['ab']==5400
           assert L['log_a']=={'2':3,'3':2}
           assert L['log_b']=={'3':1,'5':2}
           assert L['log_ab']=={'2':3,'3':3,'5':2}
           assert L['identity']=='log(a)+log(b)=log(ab)'
-          print('Zeta TM one-liner exact-log checks passed')
+          print('Zeta TM one-liner exact-log checks passed from arbitrary cwd')
           PY
