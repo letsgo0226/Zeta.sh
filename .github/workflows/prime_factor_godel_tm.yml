@@ -1,0 +1,44 @@
+name: Prime-Factor Godel TM 2KB
+
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Finite TM prefix length"
+        required: false
+        default: "16"
+  push:
+    paths:
+      - "Prime_Factor_Godel_TM_2KB.sh"
+      - ".github/workflows/prime_factor_godel_tm.yml"
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify strict 2 KB one-liner
+        shell: bash
+        run: |
+          test "$(wc -c < Prime_Factor_Godel_TM_2KB.sh)" -lt 2048
+          test "$(awk 'END{print NR}' Prime_Factor_Godel_TM_2KB.sh)" -eq 1
+          sh -n Prime_Factor_Godel_TM_2KB.sh
+      - name: Execute finite Gödel-TM prefix
+        shell: bash
+        env:
+          STEPS: ${{ github.event.inputs.steps || '16' }}
+        run: sh Prime_Factor_Godel_TM_2KB.sh "$STEPS" | tee prime_factor_godel_tm.jsonl
+      - name: Verify semantic boundaries
+        shell: bash
+        run: |
+          grep -q '"exact":true' prime_factor_godel_tm.jsonl
+          grep -q '"omega_attained":0' prime_factor_godel_tm.jsonl
+          grep -q '"program_equals_zeta":0' prime_factor_godel_tm.jsonl
+          grep -q '"open":1' prime_factor_godel_tm.jsonl
+          grep -q '"final":0' prime_factor_godel_tm.jsonl
