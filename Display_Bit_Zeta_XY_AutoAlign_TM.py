@@ -1,44 +1,46 @@
 #!/usr/bin/env python3
-"""Finite X/Y recursive SVG auto-alignment model.
-Exact bytes, analytic zeta features, and visual alignment remain distinct channels.
+"""X/Y recursive raster→SVG auto-aligner.
+Exact byte identity, zeta analytic features, and visual alignment are separate channels.
+Requires Pillow; mpmath enables the zeta feature channel.
 """
 import argparse,hashlib,json,math
 from pathlib import Path
-try:
- import mpmath as mp
-except ImportError:
- mp=None
+from PIL import Image,ImageDraw
+try: import mpmath as mp
+except ImportError: mp=None
 
 def E(b): return int.from_bytes(b'\1'+b,'big')
 def D(n): return n.to_bytes((n.bit_length()+7)//8,'big')[1:]
-def zeta(s): return complex(mp.zeta(s)) if mp else complex(0.0,0.0)
-def phi(theta): return .5+1j*theta
-def Q(z,e,q=4096):
- a=math.atan2(z.imag,z.real) if z else 0.0
- return round(a*q)/q,round(min(1.0,max(0.0,e))*q)/q
+def zeta(x): return complex(mp.zeta(.5+1j*x)) if mp else 0j
+def feat(im,n=64):
+ im=im.convert('L').resize((n,n)); p=list(im.getdata());
+ return [v/255 for v in p]
+def loss(a,b): return sum(abs(x-y) for x,y in zip(a,b))/len(a)
+def raster(points,n=64):
+ im=Image.new('L',(n,n),0);d=ImageDraw.Draw(im)
+ if len(points)>1:d.line(points,fill=255,width=1)
+ return im
+def xy(theta,k,n=64):
+ r=(n*.43)/(1+.025*k);return n/2+r*math.cos(theta),n/2-r*math.sin(theta)
+def candidate(theta,k,targetf,n=64):
+ z=zeta(theta); phase=math.atan2(z.imag,z.real) if z else 0
+ trials=[theta+d for d in (0,.08,-.08,.03*phase,-.03*phase)]
+ return trials
 
-def step(state,target):
- z=zeta(phi(state['theta']))
- qa,qe=Q(z,state['error'])
- # finite deterministic feedback; target digest anchors exact source identity
- anchor=((target>>((state['n']*11)%max(1,target.bit_length())))&255)/255-.5
- theta=state['theta']+.18*qa+.05*anchor-.12*qe*math.copysign(1,state['theta'] or 1)
- return {'n':state['n']+1,'theta':theta,'error':state['error']*.86,'z':[z.real,z.imag]}
-
-def vector(st,cx=400,cy=300,scale=180):
- r=scale/(1+.08*st['n']); a=st['theta']
- return cx+r*math.cos(a),cy-r*math.sin(a)
-
-def svg(states,w=800,h=600):
- pts=' '.join('%.2f,%.2f'%vector(s) for s in states)
- return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}"><rect width="100%" height="100%" fill="#020814"/><polyline points="{pts}" fill="none" stroke="#42ddff" stroke-width="2"/><g fill="#ffe36b">{''.join('<circle cx="%.2f" cy="%.2f" r="3"/>'%vector(s) for s in states)}</g><text x="20" y="30" fill="white">X/Y recursive alignment trace: G→X→ζ(φ(X))→Q→δ→X+</text></svg>'''
+def make_svg(points,w=800,h=800,n=64):
+ pts=' '.join(f'{x*w/n:.2f},{y*h/n:.2f}' for x,y in points)
+ return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}"><rect width="100%" height="100%" fill="black"/><polyline points="{pts}" fill="none" stroke="white" stroke-width="2"/><text x="16" y="28" fill="#42ddff">G→X(slope)→ζ→Y→visual loss→δ→X+ · pure vector trace</text></svg>'''
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('target');p.add_argument('-n','--steps',type=int,default=64);p.add_argument('-o','--output',default='AutoAligned.svg');a=p.parse_args()
- b=Path(a.target).read_bytes();g=E(b);assert D(g)==b
- # exact channel is byte-perfect; error here is a finite alignment state, not a claim of pixel identity
- s={'n':0,'theta':((g%1000003)/1000003-.5)*math.pi,'error':1.0};states=[s]
- for _ in range(a.steps): s=step(s,g);states.append(s)
- Path(a.output).write_text(svg(states),encoding='utf-8')
- print(json.dumps({'target_sha256':hashlib.sha256(b).hexdigest(),'exact_roundtrip':D(g)==b,'steps':a.steps,'final_alignment_error':s['error'],'zeta_backend':bool(mp),'pure_vector':True,'pixel_identity_claimed':False,'rh_proved':False,'omega_attained':False,'open':True,'final':False},separators=(',',':')))
-if __name__=='__main__': main()
+ ap=argparse.ArgumentParser();ap.add_argument('target');ap.add_argument('-n','--steps',type=int,default=256);ap.add_argument('-o','--output',default='AutoAligned.svg');a=ap.parse_args()
+ raw=Path(a.target).read_bytes();G=E(raw);assert D(G)==raw
+ target=Image.open(a.target);tf=feat(target);N=64
+ theta=((G%1000003)/1000003-.5)*math.tau;points=[];best=1.0
+ for k in range(a.steps):
+  opts=[]
+  for th in candidate(theta,k,tf,N):
+   p=points+[xy(th,k,N)];e=loss(tf,feat(raster(p,N),N));opts.append((e,th,p))
+  e,theta,points=min(opts,key=lambda q:q[0]);best=min(best,e)
+ Path(a.output).write_text(make_svg(points,n=N),encoding='utf-8')
+ print(json.dumps({'target_sha256':hashlib.sha256(raw).hexdigest(),'exact_roundtrip':D(G)==raw,'steps':a.steps,'measured_visual_l1':best,'zeta_backend':bool(mp),'pure_vector':True,'embedded_raster':False,'pixel_identity_claimed':False,'rh_proved':False,'omega_attained':False,'open':True,'final':False},separators=(',',':')))
+if __name__=='__main__':main()
