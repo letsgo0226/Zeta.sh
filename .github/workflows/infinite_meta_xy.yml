@@ -1,0 +1,35 @@
+name: Infinite Meta XY
+on:
+  push:
+    paths:
+      - 'Infinite_Meta_XY_TM.py'
+      - 'INFINITE_META_XY_MODEL.md'
+      - '.github/workflows/infinite_meta_xy.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate finite prefixes
+        run: |
+          python3 Infinite_Meta_XY_TM.py --levels 4 > /tmp/a.json
+          python3 Infinite_Meta_XY_TM.py --levels 6 --omega > /tmp/b.json
+      - name: Verify exact/meta boundaries
+        run: |
+          python3 - <<'PY'
+          import json
+          a=json.load(open('/tmp/a.json'));b=json.load(open('/tmp/b.json'))
+          assert a['mode']=='infinite-meta-xy'
+          assert a['self_exact'] is True
+          assert a['identity_channel_exact'] is True
+          assert a['analytic_projection_lossy'] is True
+          assert a['zeta_numeric'] is True
+          assert a['open'] is True and a['final'] is False
+          assert a['finite_prefix_levels']==4 and len(a['states'])==4
+          assert all(x['meta_roundtrip'] for x in a['states'])
+          assert b['finite_prefix_levels']==6 and len(b['states'])==6
+          assert b['omega']['symbolic'] is True
+          assert b['omega']['attained_by_finite_execution'] is False
+          assert all(x['next_G_bits']>x['G_bits'] for x in b['states'])
+          PY
