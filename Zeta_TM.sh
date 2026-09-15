@@ -5,9 +5,10 @@ from pathlib import Path
 C=(1/12,-1/720,1/30240,-1/1209600,1/47900160,-691/1307674368000)
 def E(b):return(256**len(b)-1)//255+int.from_bytes(b,'big')
 def D(n):
- v=n;k=0
- while v>=256**k:v-=256**k;k+=1
- return v.to_bytes(k,'big')
+ k=max(0,(n.bit_length()+7)//8);S=lambda q:(256**q-1)//255
+ while k and n<S(k):k-=1
+ while n>=S(k+1):k+=1
+ return (n-S(k)).to_bytes(k,'big')
 def src():return Path(sys.argv[1]).read_bytes()
 def zeta(s,n=96,m=6):
  if s==1:raise ValueError('zeta pole at s=1')
@@ -89,6 +90,26 @@ def xyrec(i,n,m):
 def xycycle(start,count,n,m):
  if start<0 or count<1 or count>256:raise ValueError('require start>=0 and 1<=count<=256')
  return dict(MODE='xy-cycle',START=start,COUNT=count,CYCLE=[xyrec(i,n,m) for i in range(start,start+count)],DENSE_GAUSSIAN_RATIONAL_ENUMERATION=True,DENSE_CLOSURE_IS_COMPLEX_PLANE=True,FULL_COMPLEX_SPACE_POINTWISE_ENUMERATION=False,IMMEDIATE_EXHAUSTIVE_TRAVERSAL=False,UNCOUNTABLE_CARDINALITY_BARRIER=True,FINITE_QUINE_GENERATOR_PRESENT=True,**base())
+def newton(index,q,n,m,limit,tol,h):
+ if index is None:index=E(src())%q;origin='self_godel_modulus'
+ else:origin='explicit'
+ if index<0:raise ValueError('index must be >=0')
+ if limit<0 or tol<=0 or h<=0:raise ValueError('require max-steps>=0, tolerance>0, derivative-step>0')
+ R,I=phi(index);s=complex(qval(R),qval(I));X=dict(RE=[R[0],R[1]],IM=[I[0],I[1]],APPROX=[s.real,s.imag]);T=[]
+ if s==1:
+  return dict(MODE='newton',INDEX=index,INDEX_SOURCE=origin,START_X=X,CONVERGED=False,REASON='start_at_zeta_pole',TARGET='zeta(s)=0',TRACE=T,GLOBAL_CONVERGENCE_GUARANTEED=False,ERROR_BOUND_RIGOROUS=False,RIEMANN_HYPOTHESIS_PROVED=False,INDEX_PROJECTION_INJECTIVE=False,**base())
+ if I==(0,1) and R[1]==1 and R[0]<0 and R[0]%2==0:
+  return dict(MODE='newton',INDEX=index,INDEX_SOURCE=origin,START_X=X,CONVERGED=True,REASON='exact_trivial_zero',ITERATIONS=0,ROOT_EXACT=[R[0],0],RESIDUAL_EXACT=0,TARGET='zeta(s)=0',TRACE=[dict(STEP=0,S=[s.real,s.imag],RESIDUAL=0)],GLOBAL_CONVERGENCE_GUARANTEED=False,ERROR_BOUND_RIGOROUS=False,RIEMANN_HYPOTHESIS_PROVED=False,INDEX_PROJECTION_INJECTIVE=False,**base())
+ reason='step_limit';converged=False
+ for k in range(limit+1):
+  f=zeta(s,n,m);res=abs(f);T.append(dict(STEP=k,S=[s.real,s.imag],RESIDUAL=res))
+  if res<=tol:converged=True;reason='tolerance';break
+  if k==limit:break
+  d=(zeta(s+h,n,m)-zeta(s-h,n,m))/(2*h)
+  if not math.isfinite(abs(d)) or abs(d)<=1e-14:reason='derivative_singular';break
+  s=s-f/d
+  if not (math.isfinite(s.real) and math.isfinite(s.imag)):reason='nonfinite_iterate';break
+ return dict(MODE='newton',INDEX=index,INDEX_SOURCE=origin,START_X=X,CONVERGED=converged,REASON=reason,ITERATIONS=len(T)-1,ROOT_APPROX=[s.real,s.imag],RESIDUAL=T[-1]['RESIDUAL'],TARGET='zeta(s)=0',TRACE=T,DERIVATIVE='centered_finite_difference',GLOBAL_CONVERGENCE_GUARANTEED=False,ERROR_BOUND_RIGOROUS=False,RIEMANN_HYPOTHESIS_PROVED=False,INDEX_PROJECTION_INJECTIVE=False,DENSE_GAUSSIAN_RATIONAL_START_SET=True,DENSE_CLOSURE_IS_COMPLEX_PLANE=True,**base())
 def omega():return dict(MODE='omega',DISCRETE_TM_DYNAMICS=True,ZETA_ANALYTIC_REPRESENTATION=True,ZETA_ANALYTIC_EMBEDDING=False,CONFIG_ENCODING_EXACT=True,X_PROJECTION_INJECTIVE=False,DENSE_GAUSSIAN_RATIONAL_ENUMERATION=True,DENSE_CLOSURE_IS_COMPLEX_PLANE=True,FULL_COMPLEX_SPACE_POINTWISE_ENUMERATION=False,IMMEDIATE_EXHAUSTIVE_TRAVERSAL=False,FINITE_QUINE_GENERATOR_PRESENT=True,EXACT_ZETA_VALUE_ATTAINED_BY_FINITE_FLOAT_EXECUTION=False,LIMIT_EXISTS='not_assumed',ATTAINED_BY_FINITE_EXECUTION=False,**base())
 def addnum(x):
  x.add_argument('--terms',type=int,default=96);x.add_argument('--corrections',type=int,default=6);x.add_argument('--modulus',type=int,default=1000003)
@@ -99,6 +120,7 @@ for k in ('self','quine','zero','omega'):sp.add_parser(k)
 x=sp.add_parser('point');addnum(x)
 x=sp.add_parser('pole');x.add_argument('--terms',type=int,default=96);x.add_argument('--corrections',type=int,default=6);x.add_argument('--epsilon',type=float,default=1e-6)
 x=sp.add_parser('xy-cycle');x.add_argument('--start',type=int,default=0);x.add_argument('--count',type=int,default=8);x.add_argument('--terms',type=int,default=96);x.add_argument('--corrections',type=int,default=6)
+x=sp.add_parser('newton');x.add_argument('--index',type=int);x.add_argument('--max-steps',type=int,default=20);x.add_argument('--tolerance',type=float,default=1e-8);x.add_argument('--derivative-step',type=float,default=1e-6);addnum(x)
 addrun(sp.add_parser('run'));addrun(sp.add_parser('trace'));a=p.parse_args(sys.argv[2:])
 if hasattr(a,'corrections') and not 1<=a.corrections<=6:raise SystemExit('corrections must be 1..6')
 if hasattr(a,'terms') and a.terms<8:raise SystemExit('terms must be >=8')
@@ -109,6 +131,7 @@ elif a.mode=='point':o=point(a.terms,a.corrections,a.modulus)
 elif a.mode=='pole':o=pole(a.terms,a.corrections,a.epsilon)
 elif a.mode=='zero':o=zero()
 elif a.mode=='xy-cycle':o=xycycle(a.start,a.count,a.terms,a.corrections)
+elif a.mode=='newton':o=newton(a.index,a.modulus,a.terms,a.corrections,a.max_steps,a.tolerance,a.derivative_step)
 elif a.mode in ('run','trace'):o=execute(a.machine,a.input,a.max_steps,a.modulus,a.terms,a.corrections,a.mode=='trace')
 else:o=omega()
 print(json.dumps(o,separators=(',',':'),sort_keys=True))
