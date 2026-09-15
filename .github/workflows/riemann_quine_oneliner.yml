@@ -1,0 +1,34 @@
+name: Riemann Quine OneLiner
+on:
+  push:
+    paths:
+      - 'Riemann_Quine_OneLiner.sh'
+      - '.github/workflows/riemann_quine_oneliner.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install --disable-pip-version-check mpmath
+      - run: |
+          test "$(grep -cve '^$' Riemann_Quine_OneLiner.sh)" -eq 1
+          test "$(wc -c < Riemann_Quine_OneLiner.sh)" -lt 2048
+          sh Riemann_Quine_OneLiner.sh > state.json
+          python - <<'PY'
+          import json
+          x=json.load(open('state.json'))
+          assert x['source_recovered'] is True
+          assert x['program_equals_zeta'] is False
+          assert x['analytic_fixed_point_claimed'] is False
+          assert x['open'] is True and x['final'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riemann-quine-oneliner-state
+          path: state.json
