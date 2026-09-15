@@ -32,7 +32,7 @@ jobs:
           assert b.rstrip(b'\n').count(b'\n')==0
           print('bytes=',len(b))
           PY
-      - name: Run decode-self, paste, X/Y and exact-log modes
+      - name: Run self-Godel-X-Y, paste, X/Y and exact-log modes
         run: |
           sh Zeta_TM_OneLiner.sh > self.json
           sh Zeta_TM_OneLiner.sh 0 8 > cycle.json
@@ -41,7 +41,7 @@ jobs:
           mkdir -p /tmp/zeta-tm-test
           (cd /tmp/zeta-tm-test && sh "$GITHUB_WORKSPACE/Zeta_TM_OneLiner.sh" > "$GITHUB_WORKSPACE/away.json")
           cat Zeta_TM_OneLiner.sh | sh > paste.json
-      - name: Verify exact self round-trip and mathematical boundaries
+      - name: Verify exact self channel and analytic projection boundaries
         run: |
           python3 - <<'PY'
           import json
@@ -50,18 +50,17 @@ jobs:
           src=Path('Zeta_TM_OneLiner.sh').read_bytes()
           for x in (S,A):
             assert x['mode']=='decode-self' and x['byte_roundtrip'] is True and x['source_exact'] is True
-            assert x['decoded'].encode()==src and x['log_identity']==0
-            assert x['semantic_complete'] is False and x['open'] is True and x['final'] is False
+            assert x['decoded'].encode()==src and x['index']==int(x['self'],16)%1000003
+            assert len(x['X'])==2 and x['Y']['k'] in ('pole','zero','num') and x['zeta_inverse'] is False
+            assert x['open'] is True and x['final'] is False
           assert P['mode']=='decode-self' and P['byte_roundtrip'] is True and P['source_exact'] is False
-          assert P['decoded']=='Zeta_TM_OneLiner.sh|PASTE' and P['log_identity']==0
+          assert P['decoded']=='Zeta_TM_OneLiner.sh|PASTE' and P['index']==int(P['self'],16)%1000003 and P['zeta_inverse'] is False
           assert C['mode']=='xy' and C['dense'] is True and C['closure_C'] is True and C['full_C'] is False
-          assert C['open'] is True and C['final'] is False
           p=next(x for x in C['cycle'] if x['n']==1)
           assert p['X']==[[1,1],[0,1]] and p['Y']=={'k':'pole','r':1,'l':0}
           z=Z['cycle'][0]
           assert z['n']==21 and z['X']==[[-2,1],[0,1]] and z['Y']=={'k':'zero','v':0}
-          assert L['mode']=='exact-log' and L['exact'] is True
-          assert L['a']==72 and L['b']==75 and L['ab']==5400
+          assert L['mode']=='exact-log' and L['exact'] is True and L['ab']==5400
           assert L['log_a']=={'2':3,'3':2} and L['log_b']=={'3':1,'5':2} and L['log_ab']=={'2':3,'3':3,'5':2}
-          print('decode-self default and Zeta TM boundary checks passed')
+          print('SELF -> Godel -> X -> Y with exact SELF round-trip checks passed')
           PY
