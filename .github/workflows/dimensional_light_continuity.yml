@@ -1,0 +1,69 @@
+name: Dimensional Light Continuity Research
+on:
+  push:
+    paths:
+      - 'Dimensional_Light_Continuity_TM.py'
+      - 'DIMENSIONAL_LIGHT_CONTINUITY_MODEL.md'
+      - '.github/workflows/dimensional_light_continuity.yml'
+  pull_request:
+    paths:
+      - 'Dimensional_Light_Continuity_TM.py'
+      - 'DIMENSIONAL_LIGHT_CONTINUITY_MODEL.md'
+      - '.github/workflows/dimensional_light_continuity.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [dimensional-light-continuity-evolve]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Static and self checks
+        run: |
+          python -m py_compile Dimensional_Light_Continuity_TM.py
+          python Dimensional_Light_Continuity_TM.py self > self.json
+          python Dimensional_Light_Continuity_TM.py omega > omega.json
+          python - <<'PY'
+          import json
+          s=json.load(open('self.json')); o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert o['UNIVERSAL_LIGHT_ACCESSIBILITY_BY_MODEL'] is True
+          assert o['SUFFERING_REQUIRED_BY_DIMENSIONAL_DIFFERENCE'] is False
+          assert o['PHYSICAL_LIGHT_ALL_DIMENSIONS_VERIFIED'] is False
+          assert o['EXTRA_DIMENSIONS_EMPIRICALLY_VERIFIED'] is False
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False
+          assert o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - name: Independence and Riemann-pair checks
+        run: |
+          python Dimensional_Light_Continuity_TM.py compare --dim-a 3 --light-a 1 --due-a 1 --suffering-a 0 --dim-b 4 --light-b 1 --due-b 1 --suffering-b 0 > compare.json
+          python Dimensional_Light_Continuity_TM.py assess --dimension 4 --light .4 --due-light 1 --suffering 2 > suffering.json
+          python Dimensional_Light_Continuity_TM.py pair --sigma .5 --t 14.134725 --u 0 --v 0 --light 1 --suffering 0 > pair.json
+          python - <<'PY'
+          import json
+          c=json.load(open('compare.json')); s=json.load(open('suffering.json')); p=json.load(open('pair.json'))
+          assert c['DIMENSIONALLY_DIFFERENT'] is True
+          assert c['COUNTEREXAMPLE_TO_DIMENSION_DIFFERENCE_IMPLIES_SUFFERING'] is True
+          assert c['NO_LOGICAL_ENTAILMENT_WITHIN_THIS_MODEL'] is True
+          assert c['NOT_A_PHYSICAL_THEOREM'] is True
+          assert abs(s['STATE']['privation']-.6)<1e-12
+          assert s['STATE']['suffering']==2
+          assert s['PRIVATION_EQUALS_SUFFERING'] is False
+          assert p['REAL_DIMENSION_OF_CxC']==4
+          assert p['ZETA_VALUE_VERIFIED'] is False
+          assert p['PHYSICAL_LIGHT_ALL_DIMENSIONS_VERIFIED'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dimensional-light-continuity-state
+          path: |
+            self.json
+            omega.json
+            compare.json
+            suffering.json
+            pair.json
