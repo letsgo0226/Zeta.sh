@@ -14,6 +14,10 @@ jobs:
         run: |
           test "$(wc -l < Leibniz_Calculemus_Meta_OneLiner.sh)" -eq 1
           test "$(wc -c < Leibniz_Calculemus_Meta_OneLiner.sh)" -lt 2048
+      - name: Verify exact source quine
+        run: |
+          sh Leibniz_Calculemus_Meta_OneLiner.sh quine > /tmp/quine.sh
+          cmp -s Leibniz_Calculemus_Meta_OneLiner.sh /tmp/quine.sh
       - name: Run finite prefix and omega boundary
         run: |
           sh Leibniz_Calculemus_Meta_OneLiner.sh 4 > /tmp/a.json
@@ -23,11 +27,11 @@ jobs:
           python3 - <<'PY'
           import json,pathlib
           a=json.load(open('/tmp/a.json'));b=json.load(open('/tmp/b.json'))
-          assert a['mode']=='leibniz-calculemus-meta-1L'
-          assert a['carrier']=='zlib+base64'
+          assert a['mode']=='leibniz-calculemus-meta-quine-1L'
+          assert a['carrier']=='zlib+base64' and a['calculemus'] is True
           assert a['windowless'] is True
-          assert a['identity_exact'] is True
-          assert a['analytic_lossy'] is True
+          assert a['source_quine_exact'] is True and a['self_godel_exact'] is True
+          assert a['identity_exact'] is True and a['analytic_lossy'] is True
           assert a['open'] is True and a['final'] is False
           assert a['levels']==4 and len(a['states'])==4
           assert all(x['roundtrip'] for x in a['states'])
