@@ -1,0 +1,36 @@
+name: Zeta Log Spectrum One-Liner
+on:
+  push:
+    paths:
+      - 'Zeta_Log_Spectrum_OneLiner.sh'
+      - '.github/workflows/zeta_log_spectrum_oneliner.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify one-line size boundary
+        run: |
+          test "$(wc -l < Zeta_Log_Spectrum_OneLiner.sh)" -eq 1
+          test "$(wc -c < Zeta_Log_Spectrum_OneLiner.sh)" -lt 2048
+      - name: Run default and theorem branches
+        run: |
+          sh Zeta_Log_Spectrum_OneLiner.sh > /tmp/a.json
+          sh Zeta_Log_Spectrum_OneLiner.sh 0 0 4 > /tmp/b.json
+          sh Zeta_Log_Spectrum_OneLiner.sh -2 0 4 > /tmp/c.json
+          sh Zeta_Log_Spectrum_OneLiner.sh 1 0 4 > /tmp/d.json
+          sh Zeta_Log_Spectrum_OneLiner.sh 1/2 14 4 > /tmp/e.json
+      - name: Verify mathematical boundaries
+        run: |
+          python3 - <<'PY'
+          import json,pathlib
+          A=[json.load(open('/tmp/'+x+'.json')) for x in 'abcde']
+          assert A[0]['mode']=='zeta-log-spectrum-1L' and A[0]['carrier']=='zlib+base64'
+          assert A[0]['formal_log_coordinate'] if 'formal_log_coordinate' in A[0] else A[0]['log_n']=='-s (formal,n>=2)'
+          assert A[1]['zeta']['exact']==[-1,2]
+          assert A[2]['zeta']['exact']==[0,0]
+          assert A[3]['zeta']['k']=='pole' and A[3]['zeta']['finite'] is False
+          assert A[4]['dirichlet'] is False and A[4]['final'] is False
+          b=pathlib.Path('Zeta_Log_Spectrum_OneLiner.sh').read_bytes();assert len(b)<2048 and b.count(b'\n')==1
+          PY
