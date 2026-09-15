@@ -18,25 +18,28 @@ jobs:
         run: |
           sh Leibniz_Calculemus_Meta_OneLiner.sh quine > /tmp/quine.sh
           cmp -s Leibniz_Calculemus_Meta_OneLiner.sh /tmp/quine.sh
-      - name: Run finite prefix and omega boundary
+      - name: Run all-goals finite prefix
         run: |
-          sh Leibniz_Calculemus_Meta_OneLiner.sh 4 > /tmp/a.json
-          sh Leibniz_Calculemus_Meta_OneLiner.sh 6 omega > /tmp/b.json
-      - name: Verify meta boundaries
+          sh Leibniz_Calculemus_Meta_OneLiner.sh 4 3 5 omega > /tmp/all.json
+      - name: Verify monad, harmony, meta-XY and omega boundaries
         run: |
           python3 - <<'PY'
           import json,pathlib
-          a=json.load(open('/tmp/a.json'));b=json.load(open('/tmp/b.json'))
-          assert a['mode']=='leibniz-calculemus-meta-quine-1L'
-          assert a['carrier']=='zlib+base64' and a['calculemus'] is True
-          assert a['windowless'] is True
+          a=json.load(open('/tmp/all.json'))
+          assert a['mode']=='LEIBNIZ_GODEL_ALL_GOALS' and a['calculemus']==1
           assert a['source_quine_exact'] is True and a['self_godel_exact'] is True
-          assert a['identity_exact'] is True and a['analytic_lossy'] is True
-          assert a['open'] is True and a['final'] is False
-          assert a['levels']==4 and len(a['states'])==4
-          assert all(x['roundtrip'] for x in a['states'])
-          assert b['omega']['symbolic'] is True
-          assert b['omega']['finite_execution'] is False
+          assert a['monad']=={'simple':1,'nonextended':1,'formal_nonphysical':1,'windowless':1}
+          assert a['harmony']['causal_influx']==0 and isinstance(a['harmony']['common_law'],int)
+          assert a['meta_xy']=="G->X->zeta(X)->G'"
+          assert a['log_spectrum']=='log_k(k^-X)=-X,k>=2'
+          assert a['computable_universe_prefix']==5
+          assert a['identity_exact']==1 and a['analytic_projection_lossy']==1
+          assert len(a['runs'])==3 and all(len(h)==4 for h in a['runs'])
+          assert all(len(layer[4])==5 for h in a['runs'] for layer in h)
+          assert a['omega']=={'symbolic':True,'finite_execution':0}
+          assert a['open']==1 and a['final']==0
           p=pathlib.Path('Leibniz_Calculemus_Meta_OneLiner.sh').read_bytes()
-          assert len(p)<2048 and p.count(b'\n')==1
+          assert a['physical_map']['source_bytes']==len(p)<2048
+          assert a['physical_map']['metaphysical_identity_proved']==0
+          assert p.count(b'\n')==1
           PY
