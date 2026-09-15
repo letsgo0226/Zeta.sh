@@ -34,8 +34,8 @@ jobs:
           PY
       - name: Run Quine X/Y cycles
         run: |
-          python3 Zeta_TM_OneLiner.sh > cycle.json
-          python3 Zeta_TM_OneLiner.sh 21 1 > zero.json
+          sh Zeta_TM_OneLiner.sh > cycle.json
+          sh Zeta_TM_OneLiner.sh 21 1 > zero.json
       - name: Verify mathematical boundaries
         run: |
           python3 - <<'PY'
