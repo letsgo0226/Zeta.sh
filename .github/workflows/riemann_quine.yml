@@ -1,0 +1,49 @@
+name: Riemann Quine Research
+on:
+  push:
+    paths:
+      - 'Riemann_Quine_TM.py'
+      - 'RIEMANN_QUINE_MODEL.md'
+      - '.github/workflows/riemann_quine.yml'
+  pull_request:
+    paths:
+      - 'Riemann_Quine_TM.py'
+      - 'RIEMANN_QUINE_MODEL.md'
+      - '.github/workflows/riemann_quine.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install --disable-pip-version-check mpmath
+      - name: Verify self reference and Riemann pair
+        run: |
+          python -m py_compile Riemann_Quine_TM.py
+          python Riemann_Quine_TM.py self > self.json
+          python Riemann_Quine_TM.py point --dps 60 > point.json
+          python Riemann_Quine_TM.py quine --dps 60 > quine.json
+          python Riemann_Quine_TM.py omega > omega.json
+          python - <<'PY'
+          import json
+          s=json.load(open('self.json'));p=json.load(open('point.json'));q=json.load(open('quine.json'));o=json.load(open('omega.json'))
+          assert s['SELF_SOLVED'] is True
+          assert p['X_IS_SELF_ENCODING_EMBEDDING'] is True and p['Y_IS_ZETA_OF_X'] is True
+          assert p['PROGRAM_EQUALS_ZETA_FUNCTION'] is False and p['ANALYTIC_FIXED_POINT_CLAIMED'] is False
+          assert q['SOURCE_RECOVERED'] is True and q['ANALYTIC_ZETA_FIXED_POINT_REQUIRED'] is False
+          assert o['KLEENE_FIXED_POINT_DISTINCT_FROM_ANALYTIC_FIXED_POINT'] is True
+          assert o['ATTAINED_BY_FINITE_EXECUTION'] is False and o['OPEN'] is True and o['FINAL'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riemann-quine-state
+          path: |
+            self.json
+            point.json
+            quine.json
+            omega.json
