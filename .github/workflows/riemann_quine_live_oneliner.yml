@@ -1,0 +1,58 @@
+name: Riemann Quine Live One-Liner
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Riemann_Quine_Live_OneLiner.sh'
+      - '.github/workflows/riemann_quine_live_oneliner.yml'
+  pull_request:
+    paths:
+      - 'Riemann_Quine_Live_OneLiner.sh'
+      - '.github/workflows/riemann_quine_live_oneliner.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-one-liner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_USER: letsgo0226
+      DPS: '60'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install numerical dependency
+        run: python3 -m pip install --disable-pip-version-check mpmath
+      - name: Verify one-line and size contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Riemann_Quine_Live_OneLiner.sh')
+          b=p.read_bytes()
+          assert len(b)<2048,len(b)
+          assert len(p.read_text().splitlines())==1
+          print('bytes=',len(b))
+          PY
+      - name: Run connected self/corpus computation
+        run: sh Riemann_Quine_Live_OneLiner.sh > live.json
+      - name: Verify live invariants
+        run: |
+          python3 - <<'PY'
+          import json
+          x=json.load(open('live.json'))
+          assert x['mode']=='live' and x['network'] is True
+          assert x['repos']>0 and x['blobs']>0 and x['source_recovered'] is True
+          assert x['zeta_at_1']=='pole' and x['residue_at_1']==1
+          assert x['normalized_limit']==1 and x['log_normalized_limit']==0
+          assert x['formal_zero'] is True and x['numerical_zero'] is False
+          assert x['schwarzschild_residual']==0
+          assert x['program_equals_zeta'] is False and x['rh_proved'] is False
+          assert x['open'] is True and x['final'] is False
+          print('live Riemann-Quine one-liner checks passed')
+          PY
