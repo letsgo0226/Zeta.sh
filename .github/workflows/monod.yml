@@ -1,0 +1,43 @@
+name: Monod 2KB One-Liner
+on:
+  push:
+    paths:
+      - 'Monod.sh'
+      - '.github/workflows/monod.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify one-line size boundary
+        run: |
+          test "$(wc -l < Monod.sh)" -eq 1
+          test "$(wc -c < Monod.sh)" -lt 2048
+      - name: Verify exact source quine
+        run: |
+          sh Monod.sh quine > /tmp/quine.sh
+          cmp -s Monod.sh /tmp/quine.sh
+      - name: Run integrated finite prefix
+        run: |
+          sh Monod.sh 4 3 5 omega > /tmp/all.json
+      - name: Verify integrated model
+        run: |
+          python3 - <<'PY'
+          import json,pathlib
+          a=json.load(open('/tmp/all.json'))
+          assert a['mode']=='LEIBNIZ_GODEL_ALL_GOALS' and a['calculemus']==1
+          assert a['source_quine_exact'] is True and a['self_godel_exact'] is True
+          assert a['monad']=={'simple':1,'nonextended':1,'formal_nonphysical':1,'windowless':1}
+          assert a['harmony']['causal_influx']==0
+          assert a['meta_xy']=="G->X->zeta(X)->G'"
+          assert a['log_spectrum']=='log_k(k^-X)=-X,k>=2'
+          assert a['identity_exact']==1 and a['analytic_projection_lossy']==1
+          assert len(a['runs'])==3 and all(len(h)==4 for h in a['runs'])
+          assert a['omega']=={'symbolic':True,'finite_execution':0}
+          assert a['open']==1 and a['final']==0
+          p=pathlib.Path('Monod.sh').read_bytes()
+          assert len(p)<2048 and p.count(b'\n')==1
+          assert a['physical_map']['source_bytes']==len(p)
+          assert a['physical_map']['metaphysical_identity_proved']==0
+          PY
