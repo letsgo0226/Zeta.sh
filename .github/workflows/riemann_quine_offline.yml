@@ -29,27 +29,41 @@ jobs:
         run: |
           python3 Riemann_Quine_Offline_TM.py self > self.json
           python3 Riemann_Quine_Offline_TM.py point > point.json
+          python3 Riemann_Quine_Offline_TM.py pole > pole.json
+          python3 Riemann_Quine_Offline_TM.py zero > zero.json
           python3 Riemann_Quine_Offline_TM.py quine > quine.json
           python3 Riemann_Quine_Offline_TM.py omega > omega.json
-      - name: Verify boundaries and standard-library imports
+      - name: Verify exact-formal and finite-numerical boundaries
         run: |
           python3 - <<'PY'
           import ast,json,pathlib
           p=pathlib.Path('Riemann_Quine_Offline_TM.py')
           tree=ast.parse(p.read_text())
-          allowed={'argparse','json','sys','pathlib'}
+          allowed={'argparse','cmath','json','sys','pathlib'}
           imports=set()
           for n in ast.walk(tree):
               if isinstance(n,ast.Import): imports.update(a.name.split('.')[0] for a in n.names)
               elif isinstance(n,ast.ImportFrom) and n.module: imports.add(n.module.split('.')[0])
           assert imports <= allowed, (imports,allowed)
-          S=json.load(open('self.json')); P=json.load(open('point.json')); Q=json.load(open('quine.json')); O=json.load(open('omega.json'))
+          S=json.load(open('self.json')); P=json.load(open('point.json')); L=json.load(open('pole.json'))
+          Z=json.load(open('zero.json')); Q=json.load(open('quine.json')); O=json.load(open('omega.json'))
           assert S['SELF_SOLVED'] is True
           assert S['OFFLINE'] is True and S['NETWORK_REQUIRED'] is False and S['THIRD_PARTY_REQUIRED'] is False
           assert P['Y_IS_ZETA_APPROX_OF_X'] is True and P['FINITE_APPROXIMATION'] is True
           assert P['ERROR_BOUND_RIGOROUS'] is False and P['CONVERGENCE_DELTA_ESTIMATE'] < 1e-8
+          assert L['ZETA_AT_1']=='simple_pole' and L['ZETA_1_FINITE'] is False and L['ZETA_1_EQUALS_ZERO'] is False
+          assert L['RESIDUE_AT_1']==1 and L['NORMALIZED_LIMIT_AT_1']==1 and L['LOG_NORMALIZED_LIMIT_AT_1']==0
+          assert L['FORMAL_RESIDUAL']==0 and L['FORMAL_ZERO_BY_THEOREM'] is True
+          assert L['NUMERICAL_ZERO_ERROR'] is False and 0 < L['NUMERICAL_DISTANCE_TO_ONE'] < 1e-4
+          assert Z['SCHWARZSCHILD']['R_S_MINUS_2M']==0 and Z['SCHWARZSCHILD']['HORIZON_FACTOR_AT_R_S']==0
+          assert Z['STIRLING']['EXACT_REMAINDER_INCLUDED'] is True and Z['STIRLING']['FINITE_TRUNCATION_ALONE_EXACT'] is False
+          assert Z['ZETA_POLE']['RESIDUE']==1 and Z['ZETA_POLE']['LOG_NORMALIZED_LIMIT']==0
+          assert Z['FORMAL_ZERO_ERROR'] is True and Z['NUMERICAL_ZERO_ERROR'] is False
+          assert Z['RIEMANN_HYPOTHESIS_PROVED'] is False
           assert Q['SOURCE_RECOVERED'] is True and Q['PROGRAM_EQUALS_ZETA_FUNCTION'] is False
           assert O['EXACT_ZETA_VALUE_ATTAINED_BY_FINITE_FLOAT_EXECUTION'] is False
+          assert O['POLE_NORMALIZED_LIMIT']==1 and O['LOG_POLE_NORMALIZED_LIMIT']==0
+          assert O['FORMAL_ZERO_DISTINCT_FROM_NUMERICAL_ZERO'] is True
           assert O['ATTAINED_BY_FINITE_EXECUTION'] is False and O['OPEN'] is True and O['FINAL'] is False
-          print('offline Riemann-Quine checks passed')
+          print('offline Riemann-Quine pole/zero checks passed')
           PY
