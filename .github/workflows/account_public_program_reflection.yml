@@ -1,0 +1,68 @@
+name: Account Public Program Reflection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    paths:
+      - 'All_Public_Programs_UTM_2KB.sh'
+      - 'Account_Public_Program_Reflection.py'
+      - '.github/workflows/account_public_program_reflection.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITHUB_OWNER: letsgo0226
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      INCLUDE_FORKS: '0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compact carrier
+        shell: bash
+        run: |
+          test "$(wc -l < All_Public_Programs_UTM_2KB.sh)" -eq 1
+          test "$(wc -c < All_Public_Programs_UTM_2KB.sh)" -lt 2048
+          bash -n All_Public_Programs_UTM_2KB.sh
+
+      - name: Compile typed scanner
+        run: python3 -m py_compile Account_Public_Program_Reflection.py
+
+      - name: Scan public program corpus without executing it
+        run: python3 Account_Public_Program_Reflection.py > account_public_program_reflection.json
+
+      - name: Validate epistemic typing
+        shell: python
+        run: |
+          import json
+          d=json.load(open('account_public_program_reflection.json',encoding='utf-8'))
+          assert d['model']=='ACCOUNT_PUBLIC_PROGRAM_REFLECTION_V1'
+          assert d['scope']['public'] is True
+          assert d['scope']['execution_of_scanned_code'] is False
+          assert d['verified']['canonical_manifest_roundtrip'] is True
+          assert d['limitations']['consistency_proved'] is False
+          assert d['limitations']['semantic_equivalence_proved'] is False
+          assert d['declared']['open'] is True
+          assert d['declared']['final'] is False
+          print(json.dumps({
+            'repositories':d['computed']['repositories'],
+            'program_files':d['computed']['program_files'],
+            'godel_manifest_bits':d['computed']['godel_manifest_bits'],
+            'tag_counts':d['computed']['tag_counts'],
+            'tree_truncated':d['limitations']['tree_truncated'],
+            'read_errors':len(d['limitations']['read_errors'])
+          },ensure_ascii=False,indent=2))
+
+      - name: Upload account reflection registry
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-public-program-reflection
+          path: account_public_program_reflection.json
+          if-no-files-found: error
+          retention-days: 30
