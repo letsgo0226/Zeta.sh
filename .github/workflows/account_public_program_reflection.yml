@@ -27,8 +27,11 @@ jobs:
       - name: Validate compact carrier
         shell: bash
         run: |
-          test "$(wc -l < All_Public_Programs_UTM_2KB.sh)" -eq 1
-          test "$(wc -c < All_Public_Programs_UTM_2KB.sh)" -lt 2048
+          lines=$(awk 'END{print NR}' All_Public_Programs_UTM_2KB.sh)
+          bytes=$(wc -c < All_Public_Programs_UTM_2KB.sh)
+          echo "All_Public_Programs_UTM_2KB.sh logical_lines=$lines bytes=$bytes"
+          test "$lines" -eq 1
+          test "$bytes" -lt 2048
           bash -n All_Public_Programs_UTM_2KB.sh
 
       - name: Compile typed scanner
